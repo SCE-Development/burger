@@ -214,7 +214,6 @@ def get_metrics():
 @app.get('/debug')
 def debug():
     return {
-
             "state": {
                 "process_dict": process_dict,
                 "current_video_dict": current_video_dict
