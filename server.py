@@ -199,6 +199,7 @@ async def play(url: str,loop: bool=False):
     
 @app.post("/stop")
 async def stop():
+    current_video_dict.clear()
     # Check if there is a video playing to stop
     if State.PLAYING in process_dict:
         # Stop the video playing subprocess
