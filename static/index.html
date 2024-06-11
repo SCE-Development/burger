@@ -86,11 +86,9 @@
         }
         fetch(stateURL.href).then((response) => response.json()).then((json) => {
             const state = json["state"];
-            if (state === "interlude") {
-                document.getElementById("playing").style.visibility = "hidden";
-            }
-            else {
+            if (state === "playing") {
                 document.getElementById("interlude").style.visibility = "hidden";
+				document.getElementById("playing").style.visibility = "visible";
                 document.getElementById('title').innerHTML = json["nowPlaying"]["title"];
                 document.getElementById('thumbnail').src = json["nowPlaying"]["thumbnail"]
             }
