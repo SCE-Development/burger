@@ -91,6 +91,7 @@
             }
             else {
                 document.getElementById("interlude").style.visibility = "hidden";
+				document.getElementById("playing").style.visibility = "visible";
                 document.getElementById('title').innerHTML = json["nowPlaying"]["title"];
                 document.getElementById('thumbnail').src = json["nowPlaying"]["thumbnail"]
             }
