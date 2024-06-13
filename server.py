@@ -389,6 +389,7 @@ def metadata(url:str):
                 "thumbnail": first_video.thumbnail_url
             }
         else:
+            logging.error(f"unable to determine url type from {url}")
             raise HTTPException(status_code=400, detail="given url is of unknown type")
     # If PyTube is unable to fetch video metadata, give response and reason
     except pytube.exceptions.AgeRestrictedError:
@@ -397,8 +398,8 @@ def metadata(url:str):
         raise HTTPException(status_code=400, detail="That's not a YouTube link buddy ...")
     except pytube.exceptions.VideoUnavailable:
         raise HTTPException(status_code=404, detail="This video is unavailable :(")
-    except Exception as e:
-        logging.exception(e)
+    except Exception:
+        logging.exception(f"unable to get metadata for url {url}")
         raise HTTPException(status_code=500, detail="check logs")
 
 @app.post("/stop")
