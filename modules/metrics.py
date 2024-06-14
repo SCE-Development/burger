@@ -2,26 +2,6 @@ import enum
 import prometheus_client
 
 
-class ExitStatus(enum.Enum):
-    SUCCESS = (0, "success")
-    GENERIC_ERROR = (1, "generic_error")
-    INVALID_ARGUMENT = (2, "invalid_argument")
-    OUT_OF_MEMORY = (137, "out_of_memory")
-    SEGMENTATION_FAULT = (139, "segmentation_fault")
-    KILL = (-9, "kill")
-    UNKNOWN_STATUS = (None, "unknown_error")
-
-    def __init__(self, code, label):
-        self.code = code
-        self.label = label
-
-    @staticmethod
-    def from_exit_code(code):
-        for status in ExitStatus:
-            if status.code == code:
-                return status
-        return ExitStatus.UNKNOWN_STATUS
-
 class Metrics(enum.Enum):
     VIDEO_COUNT = (
         "video_count",
@@ -40,7 +20,7 @@ class Metrics(enum.Enum):
         "subprocess_count",
         "Number of subprocesses ended",
         prometheus_client.Counter,
-        ['exit_status'] # ExitStatus.SUCCESS.label, ExitStatus.GENERIC_ERROR.label, etc
+        ['exit_code'] # 0, 137, 1 etc
     )
 
     def __init__(self, title, description, prometheus_type, labels=()):
