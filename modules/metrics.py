@@ -1,7 +1,5 @@
 import enum
-import functools
 import prometheus_client
-import logging
 
 
 class ExitStatus(enum.Enum):
@@ -77,16 +75,3 @@ class MetricsHandler:
             cls._instance = cls.__new__(cls)
             cls.init(cls)
         return cls._instance
-
-
-    @staticmethod
-    def track_subprocess_exit_code(func) -> None:
-
-        @functools.wraps(func)
-        def wrapper(*args, **kwargs):
-            exit_code = func(*args, **kwargs)
-            logging.info(f"exit code: {exit_code}")
-            MetricsHandler.subprocess_count.labels(exit_status=ExitStatus.from_exit_code(exit_code).label
-                                                   ).inc(amount=1)
-            return exit_code
-        return wrapper

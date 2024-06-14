@@ -47,7 +47,6 @@ app.add_middleware(
 )
 
 # return the result of process.wait()
-@metrics_handler.track_subprocess_exit_code
 def create_ffmpeg_stream(video_path:str, video_type:State, loop=False):
     command = [ 'ffmpeg', '-re', '-i', video_path, '-vf', f'scale=640:360', 
                 '-c:v', 'libx264', '-preset', 'veryfast', '-tune', 'zerolatency', 
@@ -62,14 +61,15 @@ def create_ffmpeg_stream(video_path:str, video_type:State, loop=False):
         stderr=subprocess.DEVNULL
     )
     process_dict[video_type] = process.pid
-    if video_type == State.PLAYING:
-        MetricsHandler.streams_count.labels(video_type="playing").inc(amount=1)
-    else:
-        MetricsHandler.streams_count.labels(video_type="interlude").inc(amount=1)
+    MetricsHandler.streams_count.labels(video_type=video_type.value).inc(amount=1)
 
     # the below function returns 0 if the video ended on its own
     # 137, 1
-    return process.wait()
+    exit_code = process.wait()
+    MetricsHandler.ffmpeg_exit_codes.labels(
+        exit_status=exit_code,
+    ).inc()
+    return exit_code
 
 def stop_video_by_type(video_type: UrlType):
   if video_type in process_dict:
