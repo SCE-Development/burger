@@ -1,13 +1,39 @@
 import enum
-
+import functools
 import prometheus_client
 
+
+class ExitStatus(enum.Enum):
+    SUCCESS = (0, "success")
+    GENERIC_ERROR = (1, "generic_error")
+    INVALID_ARGUMENT = (2, "invalid_argument")
+    OUT_OF_MEMORY = (137, "out_of_memory")
+    SEGMENTATION_FAULT = (139, "segmentation_fault")
+    UNKNOWN_ERROR = (None, "unknown_error")
+
+    def __init__(self, code, label):
+        self.code = code
+        self.label = label
 
 class Metrics(enum.Enum):
     VIDEO_COUNT = (
         "video_count",
         "Number of videos played",
         prometheus_client.Counter,
+    )
+
+    STREAMS_COUNT = (
+        "streams_count",
+        "Number of streams created",
+        prometheus_client.Counter,
+        ("playing", "interlude",),
+    )
+
+    SUBPROCESS_COUNT = (
+        "subprocess_count",
+        "Number of subprocesses ended",
+        prometheus_client.Counter,
+        ("success", "generic_error", "invalid_argument", "out_of_memory", "segmentation_fault", "unknown_error",),
     )
 
     def __init__(self, title, description, prometheus_type, labels=()):
@@ -42,3 +68,17 @@ class MetricsHandler:
             cls._instance = cls.__new__(cls)
             cls.init(cls)
         return cls._instance
+
+
+    @staticmethod
+    def track_subprocess_exit_code(func) -> None:
+
+        @functools.wraps(func)
+        def wrapper(*args, **kwargs):
+            exit_code = func(*args, **kwargs)
+            if exit_code in [status.code for status in ExitStatus]:
+                MetricsHandler.subprocess_count.labels(ExitStatus(exit_code).label).inc(amount=1)
+            else:
+                MetricsHandler.subprocess_count.labels(ExitStatus.UNKNOWN_ERROR.label).inc(amount=1)
+            return exit_code
+        return wrapper
