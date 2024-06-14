@@ -18,7 +18,7 @@ import psutil
 
 from modules.args import get_args
 from modules.cache import Cache
-from modules.metrics import MetricsHandler
+from modules.metrics import MetricsHandler, ExitStatus
 
 class State(enum.Enum):
     INTERLUDE = "interlude"
@@ -66,8 +66,8 @@ def create_ffmpeg_stream(video_path:str, video_type:State, loop=False):
     # the below function returns 0 if the video ended on its own
     # 137, 1
     exit_code = process.wait()
-    MetricsHandler.ffmpeg_exit_codes.labels(
-        exit_status=exit_code,
+    MetricsHandler.subprocess_count.labels(
+        exit_status=ExitStatus.from_exit_code(exit_code).label,
     ).inc()
     return exit_code
 
