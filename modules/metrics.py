@@ -10,11 +10,19 @@ class ExitStatus(enum.Enum):
     INVALID_ARGUMENT = (2, "invalid_argument")
     OUT_OF_MEMORY = (137, "out_of_memory")
     SEGMENTATION_FAULT = (139, "segmentation_fault")
-    UNKNOWN_ERROR = (None, "unknown_error")
+    KILL = (-9, "kill")
+    UNKNOWN_STATUS = (None, "unknown_error")
 
     def __init__(self, code, label):
         self.code = code
         self.label = label
+
+    @staticmethod
+    def from_exit_code(code):
+        for status in ExitStatus:
+            if status.code == code:
+                return status
+        return ExitStatus.UNKNOWN_STATUS
 
 class Metrics(enum.Enum):
     VIDEO_COUNT = (
@@ -78,11 +86,7 @@ class MetricsHandler:
         def wrapper(*args, **kwargs):
             exit_code = func(*args, **kwargs)
             logging.info(f"exit code: {exit_code}")
-            if exit_code in [status.code for status in ExitStatus]:
-                MetricsHandler.subprocess_count.labels(exit_status=ExitStatus(exit_code).label
-                                                       ).inc(amount=1)
-            else:
-                MetricsHandler.subprocess_count.labels(exit_status=ExitStatus.UNKNOWN_ERROR.label
-                                                       ).inc(amount=1)
+            MetricsHandler.subprocess_count.labels(exit_status=ExitStatus.from_exit_code(exit_code).label
+                                                   ).inc(amount=1)
             return exit_code
         return wrapper
