@@ -26,14 +26,14 @@ class Metrics(enum.Enum):
         "streams_count",
         "Number of streams created",
         prometheus_client.Counter,
-        ("playing", "interlude",),
+        ['video_type'] # playing, interlude
     )
 
     SUBPROCESS_COUNT = (
         "subprocess_count",
         "Number of subprocesses ended",
         prometheus_client.Counter,
-        ("success", "generic_error", "invalid_argument", "out_of_memory", "segmentation_fault", "unknown_error",),
+        ['exit_status'] # ExitStatus.SUCCESS.label, ExitStatus.GENERIC_ERROR.label, etc
     )
 
     def __init__(self, title, description, prometheus_type, labels=()):
@@ -76,9 +76,12 @@ class MetricsHandler:
         @functools.wraps(func)
         def wrapper(*args, **kwargs):
             exit_code = func(*args, **kwargs)
+            print(f"exit code: {exit_code}")
             if exit_code in [status.code for status in ExitStatus]:
-                MetricsHandler.subprocess_count.labels(ExitStatus(exit_code).label).inc(amount=1)
+                MetricsHandler.subprocess_count.labels(exit_status=ExitStatus(exit_code).label
+                                                       ).inc(amount=1)
             else:
-                MetricsHandler.subprocess_count.labels(ExitStatus.UNKNOWN_ERROR.label).inc(amount=1)
+                MetricsHandler.subprocess_count.labels(exit_status=ExitStatus.UNKNOWN_ERROR.label
+                                                       ).inc(amount=1)
             return exit_code
         return wrapper
