@@ -189,7 +189,7 @@ async def play(url: str,loop: bool=False):
         else:
             raise HTTPException(status_code=400, detail="given url is of unknown type")
         # Update Metrics
-        MetricsHandler.video_count.inc(amount=1)
+        MetricsHandler.video_count.inc()
         return { "detail": "Success" }
 
     # If download is unsuccessful, give response and reason
