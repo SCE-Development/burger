@@ -61,9 +61,15 @@ def create_ffmpeg_stream(video_path:str, video_type:State, loop=False):
         stderr=subprocess.DEVNULL
     )
     process_dict[video_type] = process.pid
+    MetricsHandler.streams_count.labels(video_type=video_type.value).inc(amount=1)
+
     # the below function returns 0 if the video ended on its own
     # 137, 1
-    return process.wait()
+    exit_code = process.wait()
+    MetricsHandler.subprocess_count.labels(
+        exit_code=exit_code,
+    ).inc()
+    return exit_code
 
 def stop_video_by_type(video_type: UrlType):
   if video_type in process_dict:
@@ -183,7 +189,7 @@ async def play(url: str,loop: bool=False):
         else:
             raise HTTPException(status_code=400, detail="given url is of unknown type")
         # Update Metrics
-        MetricsHandler.video_count.inc(amount=1)
+        MetricsHandler.video_count.inc()
         return { "detail": "Success" }
 
     # If download is unsuccessful, give response and reason

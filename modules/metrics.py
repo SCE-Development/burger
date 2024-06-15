@@ -1,5 +1,4 @@
 import enum
-
 import prometheus_client
 
 
@@ -8,6 +7,20 @@ class Metrics(enum.Enum):
         "video_count",
         "Number of videos played",
         prometheus_client.Counter,
+    )
+
+    STREAMS_COUNT = (
+        "streams_count",
+        "Number of streams created",
+        prometheus_client.Counter,
+        ['video_type'] # playing, interlude
+    )
+
+    SUBPROCESS_COUNT = (
+        "subprocess_count",
+        "Number of subprocesses ended",
+        prometheus_client.Counter,
+        ['exit_code'] # 0, 137, 1 etc
     )
 
     def __init__(self, title, description, prometheus_type, labels=()):
