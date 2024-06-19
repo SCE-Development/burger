@@ -82,7 +82,7 @@
             try {
               e.preventDefault()
               playEntireDirectoryBtn.disabled = true;
-              let url = new URL(window.location.pathname + '/play/file', window.location.origin)
+              let url = new URL("play/file", window.location.origin)
               const response = await fetch(url.href, { method: "POST" })
               const res_json = await response.json()
               if (res_json["detail"] === "Success") {

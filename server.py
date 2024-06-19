@@ -190,18 +190,11 @@ def handle_cache_play():
 
         # Get the file path of the video to stream
         file_path = video.file_path
-
-        # Start thread to stream the video and provide a response
-        try:
-            response = create_ffmpeg_stream(file_path, State.PLAYING)
-            
-            # if the video ended on its own, continue to the next video, otherwise break out of the loop
-            if response != 0:
-                break
+        response = create_ffmpeg_stream(file_path, State.PLAYING)
         
-        except Exception as e:
-            logging.exception(e)
-            raise HTTPException(status_code=500, detail="check logs")
+        # if the video ended on its own, continue to the next video, otherwise break out of the loop
+        if response != 0:
+            break
 
 
 @app.get("/state")
@@ -214,14 +207,15 @@ async def state():
     return  { "state": State.INTERLUDE }
 
 @app.post("/play/file")
-async def play_file(file_path: str, title: str, thumbnail: str):
+async def play_file(file_path: str="cache", title: str="", thumbnail: str=""):
     # Check if video is already playing
     if State.PLAYING in process_dict:
         raise HTTPException(status_code=409, detail="Please wait for the current video to end, then make the request")
     
-    # Store the current playing video information
-    current_video_dict["title"] = title
-    current_video_dict["thumbnail"] = thumbnail
+    # Store the current playing video information if any
+    if title != "" and thumbnail != "":
+        current_video_dict["title"] = title
+        current_video_dict["thumbnail"] = thumbnail
 
     # Check if interlude is playing
     if State.INTERLUDE in process_dict:
@@ -230,41 +224,27 @@ async def play_file(file_path: str, title: str, thumbnail: str):
 
     # Start thread to stream the video and provide a response
     try:
-        threading.Thread(target=create_ffmpeg_stream, args=(file_path, State.PLAYING)).start()
-        return { "detail": "Success" }
-    except Exception as e:
-        logging.exception(e)
-        raise HTTPException(status_code=500, detail="check logs")
-    finally:
-        # Start streaming video
-        # Once video is finished playing (or stopped early), restart interlude
-        if args.interlude:
-            interlude_lock.release()
-
-@app.post("/cache/play/file")
-async def cache_play_file():
-    # Check if video is already playing
-    if State.PLAYING in process_dict:
-        raise HTTPException(status_code=409, detail="Please wait for the current video to end, then make the request")
-    
-    # Check if interlude is playing
-    if State.INTERLUDE in process_dict:
-        # Stop interlude
-        stop_video_by_type(State.INTERLUDE)
-    
-    # Start thread to stream the video and provide a response
-    try:
-        threading.Thread(target=handle_cache_play).start()
-        return { "detail": "Success" }
-    except Exception as e:
-        logging.exception(e)
-        raise HTTPException(status_code=500, detail="check logs")
-    finally:
-        # Start streaming video
-        # Once video is finished playing (or stopped early), restart interlude
-        if args.interlude:
-            interlude_lock.release()
+        
+        # check if we are going to play all videos or a single video in the cache
+        if file_path == "cache":
             
+            #Start a thread to play all videos in the cache  
+            threading.Thread(target=handle_cache_play).start()
+        
+        else:
+            # Start a thread to play a single video in the cache
+            threading.Thread(target=create_ffmpeg_stream, args=(file_path, State.PLAYING)).start()
+        
+        return { "detail": "Success" }
+    
+    except Exception as e:
+        logging.exception(e)
+        raise HTTPException(status_code=500, detail="check logs")
+    finally:
+        # Start streaming video
+        # Once video is finished playing (or stopped early), restart interlude
+        if args.interlude:
+            interlude_lock.release()
 
 
 @app.post("/play")
