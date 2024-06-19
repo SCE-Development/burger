@@ -7,34 +7,51 @@ from urllib.parse import unquote
 import uvicorn
 import signal
 import logging
+import ssl
+ssl._create_default_https_context = ssl._create_stdlib_context
 
 from fastapi import FastAPI, HTTPException, Response
+from fastapi.responses import FileResponse
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from pytube import YouTube, Playlist
 import pytube.exceptions 
 import prometheus_client
 import psutil
+import json
 
 from modules.args import get_args
 from modules.cache import Cache
 from modules.metrics import MetricsHandler
 
+# Enum for the state of the video being processed
 class State(enum.Enum):
     INTERLUDE = "interlude"
     PLAYING = "playing"
 
+# Enum for the type of URL being processed
 class UrlType(enum.Enum):
     VIDEO = "video"
     PLAYLIST = "playlist"
     UNKNOWN = "unknown"
 
+# Create FastAPI instance
 app = FastAPI()
+
+# This dictionary is used to store the process IDs of running subprocesses, keyed by the type of video being processed (interlude or playing).
 process_dict = {}
+
+# This dictionary is used to store the title and thumbnail of the currently playing video.
 current_video_dict = {}
+
 interlude_lock = threading.Lock()
+
 args = get_args()
+
+# Create a cache object to store video files, initializing it with the file path specified in the command-line arguments or configuration settings. This instance is used to cache downloaded videos.
 video_cache = Cache(file_path=args.videopath)
+
+# Create a MetricsHandler instance to handle metrics for the server. This instance is used to handle metrics for the server.
 metrics_handler = MetricsHandler.instance()
 
 # Enable CORS
@@ -48,6 +65,7 @@ app.add_middleware(
 
 # return the result of process.wait()
 def create_ffmpeg_stream(video_path:str, video_type:State, loop=False):
+    # Create a subprocess to stream the video using FFmpeg
     command = [ 'ffmpeg', '-re', '-i', video_path, '-vf', f'scale=640:360', 
                 '-c:v', 'libx264', '-preset', 'veryfast', '-tune', 'zerolatency', 
                 '-c:a', 'aac', '-ar', '44100', '-f', 'flv', args.rtmp_stream_url ]
@@ -71,12 +89,14 @@ def create_ffmpeg_stream(video_path:str, video_type:State, loop=False):
     ).inc()
     return exit_code
 
+# stop the video by type
 def stop_video_by_type(video_type: UrlType):
   if video_type in process_dict:
       kill_child_processes(process_dict[video_type])
       process_dict.pop(video_type)
   pass
 
+# terminate a parent process and all its child processes using a specified signal.
 def kill_child_processes(parent_pid, sig=signal.SIGKILL):
     try:
         parent = psutil.Process(parent_pid)
@@ -86,10 +106,14 @@ def kill_child_processes(parent_pid, sig=signal.SIGKILL):
             process.send_signal(sig)
     except psutil.NoSuchProcess:
         return
-    
+
+# Start a thread to handle the interlude stream
 def handle_interlude():
     while True:
+        # Wait for the lock to be released
         interlude_lock.acquire()
+
+        # Check if the interlude stream is already running
         create_ffmpeg_stream(args.interlude, State.INTERLUDE, True)
 
 def handle_play(url:str,loop:bool):
@@ -159,6 +183,32 @@ def _get_url_type(url:str):
             logging.error(f"url {url} is not a playlist or video!")
             return UrlType.UNKNOWN
 
+def handle_cache_play():
+    # Get all the videos in the cache
+    cache_videos =  video_cache.video_id_to_path
+
+    # Loop through each video in the cache
+    for _ , video in cache_videos.items():
+
+        # Store the current playing video information 
+        current_video_dict["title"] = video.title
+        current_video_dict["thumbnail"] = video.thumbnail
+
+        # Get the file path of the video to stream
+        file_path = video.file_path
+
+        # Start thread to stream the video and provide a response
+        try:
+            response = create_ffmpeg_stream(file_path, State.PLAYING)
+            
+            # if the video ended on its own, continue to the next video, otherwise break out of the loop
+            if response != 0:
+                break
+        
+        except Exception as e:
+            logging.exception(e)
+            raise HTTPException(status_code=500, detail="check logs")
+
 
 @app.get("/state")
 async def state():
@@ -169,23 +219,84 @@ async def state():
                 }
     return  { "state": State.INTERLUDE }
 
+@app.post("/play/file")
+async def play_file(file_path: str, title: str, thumbnail: str):
+    # Check if video is already playing
+    if State.PLAYING in process_dict:
+        raise HTTPException(status_code=409, detail="Please wait for the current video to end, then make the request")
+    
+    # Store the current playing video information
+    current_video_dict["title"] = title
+    current_video_dict["thumbnail"] = thumbnail
+
+    # Check if interlude is playing
+    if State.INTERLUDE in process_dict:
+        # Stop interlude
+        stop_video_by_type(State.INTERLUDE)
+
+    # Start thread to stream the video and provide a response
+    try:
+        threading.Thread(target=create_ffmpeg_stream, args=(file_path, State.PLAYING)).start()
+        return { "detail": "Success" }
+    except Exception as e:
+        logging.exception(e)
+        raise HTTPException(status_code=500, detail="check logs")
+    finally:
+        # Start streaming video
+        # Once video is finished playing (or stopped early), restart interlude
+        if args.interlude:
+            interlude_lock.release()
+
+@app.post("/cache/play/file")
+async def cache_play_file():
+    # Check if video is already playing
+    if State.PLAYING in process_dict:
+        raise HTTPException(status_code=409, detail="Please wait for the current video to end, then make the request")
+    
+    # Check if interlude is playing
+    if State.INTERLUDE in process_dict:
+        # Stop interlude
+        stop_video_by_type(State.INTERLUDE)
+    
+    # Start thread to stream the video and provide a response
+    try:
+        threading.Thread(target=handle_cache_play).start()
+        return { "detail": "Success" }
+    except Exception as e:
+        logging.exception(e)
+        raise HTTPException(status_code=500, detail="check logs")
+    finally:
+        # Start streaming video
+        # Once video is finished playing (or stopped early), restart interlude
+        if args.interlude:
+            interlude_lock.release()
+            
+
+
 @app.post("/play")
 async def play(url: str,loop: bool=False):
+    # Decode URL
     url = unquote(url)
+
     # Check if video is already playing
     if State.PLAYING in process_dict:
         raise HTTPException(status_code=409, detail="Please wait for the current video to end, then make the request")
     
     # Start thread to download video, stream it, and provide a response
     try:
+        
+        # Get the type of URL (VIDEO, PLAYLIST, UNKNOWN)
         url_type = _get_url_type(url)
-        # Check if the given url is a valid video or playlist
+        
+        # Check the type of URL and start the appropriate thread
         if url_type == UrlType.VIDEO:
             threading.Thread(target=handle_play, args=(url,loop)).start()
+        
         elif url_type == UrlType.PLAYLIST:
             if len(Playlist(url)) == 0:
                 raise Exception("This playlist url is invalid. Playlist may be empty or no longer exists.")
             threading.Thread(target=handle_playlist, args=(url,loop)).start()
+        
         else:
             raise HTTPException(status_code=400, detail="given url is of unknown type")
         # Update Metrics
@@ -211,12 +322,28 @@ async def stop():
         # Stop the video playing subprocess
         stop_video_by_type(State.PLAYING)
 
+@app.get("/list")
+async def getVideos():
+    returnedResponse = []
+    for key, value in video_cache.video_id_to_path.items():
+        returnedResponse.append({
+                                    "id": key, 
+                                    "name": value.title, 
+                                    "path": value.file_path, 
+                                    "thumbnail": value.thumbnail 
+                                })
+    return json.dumps(returnedResponse)
+
 @app.get('/metrics')
 def get_metrics():
     return Response(
         media_type="text/plain",
         content=prometheus_client.generate_latest(),
     )
+
+@app.get('/cache')
+def get_cache():
+    return FileResponse('static/cache.html')
 
 @app.get('/debug')
 def debug():
@@ -237,6 +364,10 @@ def signal_handler():
     video_cache.clear()
 
 app.mount("/", StaticFiles(directory="static", html=True), name="static")
+
+
+
+
 
 # we have a separate __name__ check here due to how FastAPI starts
 # a server. the file is first ran (where __name__ == "__main__")

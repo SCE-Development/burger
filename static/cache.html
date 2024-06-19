@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Cache</title>
+  <link rel="stylesheet" href="cache.css">
+</head>
+<body>
+  <h1>cache</h1>
+  <button id="playEntireDirectoryBtn">play entire directory</button>
+  <!-- Video -->
+  <div id="listOfVideosContainer" >
+  </div>
+  
+  <script>
+    let url = new URL("list", window.location.origin)
+    fetch(url.href)
+      .then(response => {
+                          if (!response.ok) {
+                            throw new Error('Network response was not ok');
+                          }
+                          return response.json()
+                        })
+      .then(data => {
+        // Store the returned object in a variable
+        const returnedObject = JSON.parse(data)
+        console.log(returnedObject)
+        if (returnedObject.length === 0) {
+          console.log("No videos found")
+          document.getElementById('playEntireDirectoryBtn').disabled = true;
+        }
+        // Loop through each element in the object and render it on the screen
+        for (const element of returnedObject) {
+          const listOfVideosContainer = document.getElementById('listOfVideosContainer');
+          const videoContainer = document.createElement('div');
+          const videoImgContainer = document.createElement('div');
+          const videoTitleContainer = document.createElement('div');
+          const videoImg = document.createElement('img');
+          const videoTitle = document.createElement('p');
+          const playButton = document.createElement('button');
+          const playEntireDirectoryBtn = document.getElementById('playEntireDirectoryBtn');
+
+          videoContainer.id = "videoContainer";
+          videoImgContainer.id = "videoImgContainer";
+          videoTitleContainer.id = "videoTitleContainer";
+      
+          videoTitle.textContent = element.name;
+          videoImg.src = element.thumbnail;
+          videoImg.alt = "thumbnail";
+          playButton.textContent = 'play';
+        
+          async function togglePlayVideo(e) {
+            try {
+              e.preventDefault();
+              const file_path = element.path;
+              const title = element.name;
+              const thumbnail = element.thumbnail;
+              let url = new URL("play/file", window.location.origin)
+              url.searchParams.append("file_path", file_path)
+              url.searchParams.append("title", title)
+              url.searchParams.append("thumbnail", thumbnail)
+
+              const response = await fetch(url.href, { method: "POST" });
+              const res_json = await response.json();
+              if (res_json["detail"] === "Success") {
+                playButton.textContent = "Success!";
+                playButton.disabled = true;
+               
+                setTimeout(() => {
+                  playButton.textContent = "Play";
+                  playButton.disabled = false;
+                }, 2000);
+              } else {
+                alert(res_json["detail"]);
+              }
+            } catch(error) {
+              console.log(error)
+            }
+            
+          }
+
+          async function togglePlayEntireDirectory(e) {
+            try {
+              e.preventDefault()
+              playEntireDirectoryBtn.disabled = true;
+              let url = new URL(window.location.pathname + '/play/file', window.location.origin)
+              const response = await fetch(url.href, { method: "POST" })
+              const res_json = await response.json()
+              if (res_json["detail"] === "Success") {
+                playEntireDirectoryBtn.textContent = "Success!";
+                setTimeout(() => {
+                  playEntireDirectoryBtn.textContent = "Play entire directory";
+                  playEntireDirectoryBtn.disabled = false;
+                }, 2000);
+              }
+            } catch(error) {
+              console.log(error)
+            }
+
+          }
+          playButton.addEventListener('click', togglePlayVideo);
+          playEntireDirectoryBtn.addEventListener('click', togglePlayEntireDirectory);
+
+          videoImgContainer.appendChild(videoImg);
+          videoTitleContainer.appendChild(videoTitle);
+          videoContainer.appendChild(videoImgContainer);
+          videoContainer.appendChild(videoTitleContainer);
+          videoContainer.appendChild(playButton);
+          listOfVideosContainer.appendChild(videoContainer);
+
+        }
+      })
+      .catch(error => {
+        console.error('Error:', error);
+      });
+  </script>
+</body>
+</html>
+
