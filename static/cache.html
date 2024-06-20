@@ -1,23 +1,28 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>Cache</title>
+  <title>SCE TV Cache</title>
   <link rel="stylesheet" href="cache.css">
 </head>
 <body>
+  <h2 id="main_tag">Main page</h2>
   <h1>SCE TV Cache</h1>
   <button id="playEntireDirectoryBtn">play entire directory</button>
   <!-- Video -->
   <div id="listOfVideosContainer" >
   </div>
   <script>
+          document.getElementById('main_tag').addEventListener('click', () => {
+            window.location.href = window.location.origin;
+          });
+
           async function togglePlayVideo(e, video) {
                   try {
                     e.preventDefault();
                     const file_path = video.path;
                     const title = video.name;
                     const thumbnail = video.thumbnail;
-                    let url = new URL("play/file", window.location.origin)
+                    let url = new URL("play/file", window.location.href)
                     url.searchParams.append("file_path", file_path)
                     url.searchParams.append("title", title)
                     url.searchParams.append("thumbnail", thumbnail)
@@ -31,7 +36,7 @@
           async function togglePlayEntireDirectory(e) {
             try {
               e.preventDefault()
-              let url = new URL("play/file", window.location.origin)
+              let url = new URL("play/file", window.location.href)
               const response = await fetch(url.href, { method: "POST" })
               return response.json()
             } catch(error) {
@@ -117,7 +122,7 @@
   </script>
   
   <script>
-    let url = new URL("list", window.location.origin)
+    let url = new URL("list", window.location.href)
     fetch(url.href)
       .then(response => response.json())
       .then(data => parseResponse(data))
