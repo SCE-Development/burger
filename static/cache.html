@@ -13,7 +13,9 @@
   </div>
   <script>
           document.getElementById('go_back_btn').addEventListener('click', () => {
-            window.location.href = window.location.origin;
+            let url = window.location.href
+            window.location.href = window.location.href.substring(0, url.lastIndexOf('/') )
+
           });
 
           async function togglePlayVideo(e, video) {
