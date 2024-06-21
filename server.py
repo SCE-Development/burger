@@ -213,19 +213,16 @@ async def state():
 
 @app.post("/play/file")
 async def play_file(file_path: str="cache", title: str="", thumbnail: str=""):
-    # Check if video is already playing
-    if State.PLAYING in process_dict:
-        raise HTTPException(status_code=409, detail="Please wait for the current video to end, then make the request")
     
     # Store the current playing video information if any
     if title != "" and thumbnail != "":
         current_video_dict["title"] = title
         current_video_dict["thumbnail"] = thumbnail
-
-    # Check if interlude is playing
-    if State.INTERLUDE in process_dict:
-        # Stop interlude
-        stop_video_by_type(State.INTERLUDE)
+    
+    # If any video playing, stop it
+    for video_type in State:
+        # Stop the video playing subprocess
+        stop_video_by_type(video_type)
 
     # Start thread to stream the video and provide a response
     try:
