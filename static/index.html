@@ -12,7 +12,7 @@
     <div style="text-align: center;">
         <h2 style="text-align: center; color: white;" id="cache_tag" >SCE TV</h2>
         <div id="interlude">
-            <input type="text" id="url" onchange="UpdateMetadata(event.target.value)" placeholder="PASTE A YOUTUBE LINK FOR EPICNESS">
+            <input type="text" id="url" onchange="OnUrlChange(event, true)" placeholder="PASTE A YOUTUBE LINK FOR EPICNESS">
             <select id="resolution">
                 <option value="144">144p</option>
                 <option value="240">240p</option>
@@ -25,8 +25,10 @@
         </div>
         <input type="checkbox" id="rate-limiter" style="visibility: hidden;">
         <div id="playing">
-            <button type="button" id="stop" style="background-color:red;" onclick="Stop(event)">Stop</button>
             <h2>NOW PLAYING:</h2>
+            <button type="button" id="stop" style="background-color:red;" onclick="Stop(event)">Stop</button>
+        </div>
+        <div id="metadata">
             <h3 id="title"></h3>
             <img id="thumbnail" style="border-style: solid;border-width: 3px;border-radius: 25px;" width="640">
         </div>
@@ -72,6 +74,7 @@
             if (res_json["detail"] === "Success") {
                 playButton.textContent = "Success!";
                 playButton.disabled = true;
+                document.getElementById("playing").style.display = "block";
                 setTimeout(() => {
                     playButton.textContent = "Play";
                     playButton.disabled = false;
@@ -86,7 +89,8 @@
             e.preventDefault();
             await fetch(stopURL.href, { method: "POST" });
             document.getElementById("interlude").style.visibility = "visible";
-            document.getElementById("playing").style.visibility = "hidden";
+            document.getElementById("metadata").style.visibility = "hidden";
+            document.getElementById("playing").style.display = "none";
         }
         fetch(stateURL.href).then((response) => response.json()).then((json) => {
             const state = json["state"];
@@ -102,30 +106,58 @@
         document.getElementById("cache_tag").addEventListener("click", function(){
             window.location.href = window.location.href + "cache";
         });
-        async function OnUrlChange(e) {
+
+        async function OnUrlChange(e, override=false) {
             const url = document.getElementById('url').value;
             const reg = /https:\/\/www\.youtube\.com\/(playlist|watch)\?(list|v)=\w+/;
-            // If the rate limiter is not checked and the URL is a valid YouTube URL
-            if ( !rateLimiterCheckbox.checked && reg.test(url) ) {
+            // If the rate limiter is not checked (or override) and the URL is a valid YouTube URL
+            // Then update the metadata
+            if ( (override || !rateLimiterCheckbox.checked) && reg.test(url) ) {
                 await UpdateMetadata(url);
             }
         }
 
         async function UpdateMetadata(url) {
             // Fetch the metadata for the video and update the UI
-            // Is called either by OnUrlChange or by the input's onchange event (user presses enter)
             let metadataURL = new URL(window.location.pathname + "metadata", window.location.origin)
             metadataURL.searchParams.append("url", encodeURIComponent(url))
-            await fetch(metadataURL.href)
-                .then(response => response.json())
+            fetch(metadataURL.href)
+                .then(response => {
+                    // If the response is not OK, throw an error
+                    if (!response.ok)
+                        throw new Error("Invalid URL!");
+                    return response.json();
+                })
                 .then(data => {
-                    document.getElementById("playing").style.visibility = "visible";
+                    // If the data is valid, update the UI
+                    document.getElementById("metadata").style.visibility = "visible";
                     document.getElementById('title').innerHTML = data["title"];
                     document.getElementById('thumbnail').src = data["thumbnail"];
                     rateLimiterCheckbox.checked = true;
                 })
-                .catch(console.error);
+                .catch(err => {
+                    // If there is an error, show an alert and hide the playing div
+                    document.getElementById("metadata").style.visibility = "hidden";
+                    alert(err);
+                });
         }
+
+
+        fetch(stateURL.href).then((response) => response.json()).then((json) => {
+            const state = json["state"];
+            console.log(json);
+            if (state === "interlude") {
+                document.getElementById("metadata").style.visibility = "hidden";
+                document.getElementById("playing").style.display = "none";
+            }
+            else {
+                document.getElementById("metadata").style.visibility = "visible";
+                document.getElementById("playing").style.display = "block";
+                document.getElementById("interlude").style.visibility = "hidden";
+                document.getElementById('title').innerHTML = json["nowPlaying"]["title"];
+                document.getElementById('thumbnail').src = json["nowPlaying"]["thumbnail"]
+            }
+        })
     </script>
 </body>
 
