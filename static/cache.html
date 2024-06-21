@@ -5,14 +5,14 @@
   <link rel="stylesheet" href="cache.css">
 </head>
 <body>
-  <h2 id="main_tag">Main page</h2>
+  <button id="go_back_btn">Go back to main page</button>
   <h1>SCE TV Cache</h1>
   <button id="playEntireDirectoryBtn">play entire directory</button>
   <!-- Video -->
   <div id="listOfVideosContainer" >
   </div>
   <script>
-          document.getElementById('main_tag').addEventListener('click', () => {
+          document.getElementById('go_back_btn').addEventListener('click', () => {
             window.location.href = window.location.origin;
           });
 
@@ -100,6 +100,7 @@
               videoImgContainer.id = "videoImgContainer";
               videoTitleContainer.id = "videoTitleContainer";
               playButton.id = element.id;
+              playButton.className = "playButton";
 
               videoTitle.textContent = element.name;
               videoImg.src = element.thumbnail;

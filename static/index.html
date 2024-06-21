@@ -10,7 +10,7 @@
 
 <body>
     <div style="text-align: center;">
-        <h2 style="position: absolute; top: 0; left: 0;" id="cache_tag" >SCE TV</h2>
+        <h2 style="text-align: center; color: white;" id="cache_tag" >SCE TV</h2>
         <div id="interlude">
             <input type="text" id="url" placeholder="PASTE A YOUTUBE LINK FOR EPICNESS">
             <select id="resolution">
@@ -97,7 +97,7 @@
 
         // Add a function to navigate to the cache page when clicking on the h2 tag
         document.getElementById("cache_tag").addEventListener("click", function(){
-            window.open(window.location.href + "cache", "_blank")
+            window.location.href = window.location.origin + "/cache";
         });
     </script>
 </body>
