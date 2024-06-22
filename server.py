@@ -86,6 +86,7 @@ def create_ffmpeg_stream(video_path:str, video_type:State, loop=False):
     MetricsHandler.subprocess_count.labels(
         exit_code=exit_code,
     ).inc()
+    process_dict.pop(video_type)
     return exit_code
 
 # stop the video by type
