@@ -1,7 +1,8 @@
-import os
 from collections import OrderedDict
-import uuid
 from dataclasses import dataclass
+import logging
+import os
+import uuid
 
 from pytube import YouTube
 
@@ -35,12 +36,14 @@ class Cache():
         video.download(self.file_path)
         video_id = self.get_video_id(url)
         video_file_name = str(uuid.uuid4()) + ".mp4"
+        video_file_path = os.path.join(self.file_path, video_file_name)
         os.rename(
             os.path.join(self.file_path, video.default_filename),
-            os.path.join(self.file_path, video_file_name),
+            video_file_path,
         )
+        logging.info(f"downloaded {url} to path {video_file_path}")
         video_info = VideoInfo(
-            file_path=os.path.join(self.file_path, video_file_name),
+            file_path=video_file_path,
             thumbnail=YouTube(url).thumbnail_url,
             title=YouTube(url).title,
             size_bytes=video.filesize

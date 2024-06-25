@@ -117,10 +117,12 @@ def create_ffmpeg_stream(
     # the below function returns 0 if the video ended on its own
     # 137, 1
     exit_code = process.wait()
+    logging.info(f"process {process.pid} exited with code {exit_code}")
     MetricsHandler.subprocess_count.labels(
         exit_code=exit_code,
     ).inc()
-    process_dict.pop(video_type)
+    if video_type in process_dict:
+        process_dict.pop(video_type)
     current_video_dict.clear()
 
     if exit_code == 0 and play_interlude_after and args.interlude:
