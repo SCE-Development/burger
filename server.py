@@ -333,19 +333,13 @@ async def play(url: str, loop: bool = False):
             t = threading.Thread(
                 target=download_and_play_video,
                 args=(url, loop, video.title, video.thumbnail),
-                daemon=True,
             )
             t.start()
 
         elif url_type == UrlType.PLAYLIST:
-            if len(Playlist(url)) == 0:
-                raise Exception(
-                    "This playlist url is invalid. Playlist may be empty or no longer exists."
-                )
             t = threading.Thread(
                 target=handle_playlist,
                 args=(url, loop),
-                daemon=True,
             )
             t.start()
 
