@@ -222,8 +222,14 @@ def handle_playlist(playlist_url: str, loop: bool):
                     thumbnail=video.thumbnail_url,
                 )
             if result != 0:
-                break
-        if not loop or result != 0:
+                # exit the entire thread routine if the video we just played was killed
+                logging.info(f"playlist routine recieved code {result}, exiting")
+                if args.interlude:
+                    interlude_lock.release()
+                return
+        if not loop:
+            if args.interlude:
+                interlude_lock.release()
             break
 
 
