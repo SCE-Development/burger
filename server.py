@@ -209,11 +209,12 @@ def handle_playlist(playlist_url: str, loop: bool):
             video = YouTube(video_url)
             # Only play age-unrestricted videos to avoid exceptions
             if not video.age_restricted:
-                threading.Thread(
+                t = threading.Thread(
                     target=download_next_video_in_list,
                     args=(playlist, i),
                     daemon=True,
-                ).start()
+                )
+                t.start()
                 result = download_and_play_video(
                     video_url,
                     loop=False,
