@@ -233,7 +233,8 @@ def handle_playlist(playlist_url: str, loop: bool):
 
 def _get_url_type(url: str):
     try:
-        pytube.Playlist(url)
+        playlist = pytube.Playlist(url)
+        logging.debug(f"{url} is a playlist with {len(playlist)} videos")
         return UrlType.PLAYLIST
     except:
         try:
