@@ -68,7 +68,14 @@ app.add_middleware(
 
 
 # return the result of process.wait()
-def create_ffmpeg_stream(video_path: str, video_type: State, loop=False):
+def create_ffmpeg_stream(
+    video_path: str, 
+    video_type: State,
+    loop=False,
+    title=None,
+    thumbnail=None,
+    play_interlude_after=False
+):
     # Create a subprocess to stream the video using FFmpeg
     command = [
         "ffmpeg",
@@ -100,6 +107,11 @@ def create_ffmpeg_stream(video_path: str, video_type: State, loop=False):
         stdin=subprocess.DEVNULL,
         stderr=subprocess.DEVNULL,
     )
+
+    if None not in [title, thumbnail]:
+        current_video_dict["title"] = title
+        current_video_dict["thumbnail"] = thumbnail
+
     process_dict[video_type] = process.pid
     MetricsHandler.streams_count.labels(video_type=video_type.value).inc(amount=1)
     # the below function returns 0 if the video ended on its own
@@ -109,6 +121,11 @@ def create_ffmpeg_stream(video_path: str, video_type: State, loop=False):
         exit_code=exit_code,
     ).inc()
     process_dict.pop(video_type)
+    current_video_dict.clear()
+
+    if exit_code == 0 and play_interlude_after and args.interlude:
+        interlude_lock.release()
+
     return exit_code
 
 
@@ -118,6 +135,9 @@ def stop_video_by_type(video_type: UrlType):
         kill_child_processes(process_dict[video_type])
         process_dict.pop(video_type)
 
+def stop_all_videos():
+    stop_video_by_type(UrlType.INTERLUDE)
+    stop_video_by_type(UrlType.PLAYING)
 
 # terminate a parent process and all its child processes using a specified signal.
 def kill_child_processes(parent_pid, sig=signal.SIGKILL):
@@ -138,22 +158,7 @@ def handle_interlude():
         interlude_lock.acquire()
 
         # Check if the interlude stream is already running
-        create_ffmpeg_stream(args.interlude, State.INTERLUDE, True)
-
-
-def handle_play(url: str, loop: bool):
-    video = YouTube(url)
-    current_video_dict["title"] = video.title
-    current_video_dict["thumbnail"] = video.thumbnail_url
-    # Update process state
-    if State.INTERLUDE in process_dict:
-        # Stop interlude
-        stop_video_by_type(State.INTERLUDE)
-    download_and_play_video(url, loop)
-    # Start streaming video
-    # Once video is finished playing (or stopped early), restart interlude
-    if args.interlude:
-        interlude_lock.release()
+        create_ffmpeg_stream(args.interlude, State.INTERLUDE, loop=True)
 
 
 def download_next_video_in_list(playlist, current_index):
@@ -165,13 +170,20 @@ def download_next_video_in_list(playlist, current_index):
         video_cache.add(video_url)
 
 
-# return the result of create_ffmpeg_stream
-def download_and_play_video(url, loop):
+def download_and_play_video(url, loop, title=None, thumbnail=None):
     video_path = video_cache.find(Cache.get_video_id(url))
     if video_path is None:
         video_cache.add(url)
         video_path = video_cache.find(Cache.get_video_id(url))
-    return create_ffmpeg_stream(video_path, State.PLAYING, loop)
+    
+    return create_ffmpeg_stream(
+        video_path,
+        State.PLAYING,
+        loop,
+        title,
+        thumbnail,
+        play_interlude_after=True,
+    )
 
 
 def handle_playlist(playlist_url: str, loop: bool):
@@ -186,20 +198,20 @@ def handle_playlist(playlist_url: str, loop: bool):
             video = YouTube(video_url)
             # Only play age-unrestricted videos to avoid exceptions
             if not video.age_restricted:
-                current_video_dict["title"] = video.title
-                current_video_dict["thumbnail"] = video.thumbnail_url
-                # Start downloading next video
                 threading.Thread(
                     target=download_next_video_in_list,
                     args=(playlist, i),
                 ).start()
-                result = download_and_play_video(video_url, False)
+                result = download_and_play_video(
+                    video_url,
+                    loop=False,
+                    title=video.title,
+                    thumbnail=video.thumbnail,
+                )
             if result != 0:
                 break
         if not loop or result != 0:
             break
-    if args.interlude:
-        interlude_lock.release()
 
 
 def _get_url_type(url: str):
@@ -229,7 +241,13 @@ def handle_cache_play():
 
         # Get the file path of the video to stream
         file_path = video.file_path
-        response = create_ffmpeg_stream(file_path, State.PLAYING)
+        response = create_ffmpeg_stream(
+            file_path,
+            State.PLAYING,
+            loop=False,
+            title=video.title,
+            thumbnail=video.thumbnail,
+        )
 
         # if the video ended on its own, continue to the next video, otherwise break out of the loop
         if response != 0:
@@ -245,12 +263,7 @@ async def state():
 
 
 @app.post("/play/file")
-async def play_file(file_path: str = "cache", title: str = "", thumbnail: str = ""):
-
-    # Store the current playing video information if any
-    if title != "" and thumbnail != "":
-        current_video_dict["title"] = title
-        current_video_dict["thumbnail"] = thumbnail
+async def play_file(file_path: str = "cache", title: str = None, thumbnail: str = None):
 
     # If any video playing, stop it
     for video_type in State:
@@ -269,7 +282,14 @@ async def play_file(file_path: str = "cache", title: str = "", thumbnail: str = 
         else:
             # Start a thread to play a single video in the cache
             threading.Thread(
-                target=create_ffmpeg_stream, args=(file_path, State.PLAYING)
+                target=create_ffmpeg_stream,
+                args=(
+                    file_path,
+                    State.PLAYING,
+                    False,
+                    title,
+                    thumbnail,
+                ),
             ).start()
 
         return {"detail": "Success"}
@@ -289,13 +309,6 @@ async def play(url: str, loop: bool = False):
     # Decode URL
     url = unquote(url)
 
-    # Check if video is already playing
-    if State.PLAYING in process_dict:
-        raise HTTPException(
-            status_code=409,
-            detail="Please wait for the current video to end, then make the request",
-        )
-
     # Start thread to download video, stream it, and provide a response
     try:
 
@@ -304,7 +317,11 @@ async def play(url: str, loop: bool = False):
 
         # Check the type of URL and start the appropriate thread
         if url_type == UrlType.VIDEO:
-            threading.Thread(target=handle_play, args=(url, loop)).start()
+            video = YouTube(url)
+            threading.Thread(
+                target=download_and_play_video,
+                args=(url, loop, video.title, video.thumbnail),
+            ).start()
 
         elif url_type == UrlType.PLAYLIST:
             if len(Playlist(url)) == 0:
@@ -383,10 +400,7 @@ def debug():
 
 @app.on_event("shutdown")
 def signal_handler():
-    for video_type in State:
-        if video_type in process_dict:
-            # Stop the video playing subprocess
-            stop_video_by_type(video_type)
+    stop_all_videos()
     video_cache.clear()
 
 
