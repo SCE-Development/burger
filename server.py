@@ -112,9 +112,9 @@ def create_ffmpeg_stream(
         command[2:2] = ["-stream_loop", "-1"]
     process = subprocess.Popen(
         command,
-        # stdout=subprocess.DEVNULL,
-        # stdin=subprocess.DEVNULL,
-        # stderr=subprocess.DEVNULL,
+        stdout=subprocess.DEVNULL,
+        stdin=subprocess.DEVNULL,
+        stderr=subprocess.DEVNULL,
     )
 
     if None not in [title, thumbnail]:
@@ -233,7 +233,8 @@ def handle_playlist(playlist_url: str, loop: bool):
 
 def _get_url_type(url: str):
     try:
-        pytube.Playlist(url)
+        playlist = pytube.Playlist(url)
+        logging.debug(f"{url} is a playlist with {len(playlist)} videos")
         return UrlType.PLAYLIST
     except:
         try:
@@ -330,13 +331,14 @@ async def play(url: str, loop: bool = False):
 
         # Get the type of URL (VIDEO, PLAYLIST, UNKNOWN)
         url_type = _get_url_type(url)
+        logging.info(f"{url} is a {url_type}")
 
         # Check the type of URL and start the appropriate thread
         if url_type == UrlType.VIDEO:
             video = YouTube(url)
             t = threading.Thread(
                 target=download_and_play_video,
-                args=(url, loop, video.title, video.thumbnail),
+                args=(url, loop, video.title, video.thumbnail_url),
             )
             t.start()
 
