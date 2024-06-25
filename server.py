@@ -8,6 +8,7 @@ import uvicorn
 import signal
 import logging
 import ssl
+import time
 
 ssl._create_default_https_context = ssl._create_stdlib_context
 
@@ -24,6 +25,14 @@ from modules.args import get_args
 from modules.cache import Cache
 from modules.metrics import MetricsHandler
 
+
+logging.Formatter.converter = time.gmtime
+logging.basicConfig(
+    # in mondo we trust
+    format="%(asctime)s.%(msecs)03dZ %(threadName)s %(levelname)s:%(name)s:%(message)s",
+    datefmt="%Y-%m-%dT%H:%M:%S",
+    level=logging.INFO,
+)
 
 # Enum for the state of the video being processed
 class State(enum.Enum):
@@ -208,7 +217,7 @@ def handle_playlist(playlist_url: str, loop: bool):
                     video_url,
                     loop=False,
                     title=video.title,
-                    thumbnail=video.thumbnail,
+                    thumbnail=video.thumbnail_url,
                 )
             if result != 0:
                 break
