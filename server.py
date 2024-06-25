@@ -112,9 +112,9 @@ def create_ffmpeg_stream(
         command[2:2] = ["-stream_loop", "-1"]
     process = subprocess.Popen(
         command,
-        # stdout=subprocess.DEVNULL,
-        # stdin=subprocess.DEVNULL,
-        # stderr=subprocess.DEVNULL,
+        stdout=subprocess.DEVNULL,
+        stdin=subprocess.DEVNULL,
+        stderr=subprocess.DEVNULL,
     )
 
     if None not in [title, thumbnail]:
@@ -330,6 +330,7 @@ async def play(url: str, loop: bool = False):
 
         # Get the type of URL (VIDEO, PLAYLIST, UNKNOWN)
         url_type = _get_url_type(url)
+        logging.info(f"{url} is a {url_type}")
 
         # Check the type of URL and start the appropriate thread
         if url_type == UrlType.VIDEO:
