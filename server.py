@@ -212,6 +212,7 @@ def handle_playlist(playlist_url: str, loop: bool):
                 threading.Thread(
                     target=download_next_video_in_list,
                     args=(playlist, i),
+                    daemon=True,
                 ).start()
                 result = download_and_play_video(
                     video_url,
@@ -332,6 +333,7 @@ async def play(url: str, loop: bool = False):
             threading.Thread(
                 target=download_and_play_video,
                 args=(url, loop, video.title, video.thumbnail),
+                daemon=True,
             ).start()
 
         elif url_type == UrlType.PLAYLIST:
@@ -339,7 +341,11 @@ async def play(url: str, loop: bool = False):
                 raise Exception(
                     "This playlist url is invalid. Playlist may be empty or no longer exists."
                 )
-            threading.Thread(target=handle_playlist, args=(url, loop)).start()
+            threading.Thread(
+                target=handle_playlist,
+                args=(url, loop),
+                daemon=True,
+            ).start()
 
         else:
             raise HTTPException(status_code=400, detail="given url is of unknown type")
