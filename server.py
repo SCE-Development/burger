@@ -186,7 +186,7 @@ def download_and_play_video(url, loop, title=None, thumbnail=None):
     if video_path is None:
         video_cache.add(url)
         video_path = video_cache.find(Cache.get_video_id(url))
-    
+    stop_all_videos()
     return create_ffmpeg_stream(
         video_path,
         State.PLAYING,
@@ -199,9 +199,6 @@ def download_and_play_video(url, loop, title=None, thumbnail=None):
 
 def handle_playlist(playlist_url: str, loop: bool):
     playlist = Playlist(playlist_url)
-    # Update process state
-    if State.INTERLUDE in process_dict:
-        stop_video_by_type(State.INTERLUDE)
     # Stop interlude
     while True:
         for i in range(len(playlist)):
