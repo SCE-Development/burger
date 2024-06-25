@@ -181,7 +181,7 @@ def download_next_video_in_list(playlist, current_index):
         video_cache.add(video_url)
 
 
-def download_and_play_video(url, loop, title=None, thumbnail=None):
+def download_and_play_video(url, loop, title=None, thumbnail=None, play_interlude_after=True):
     video_path = video_cache.find(Cache.get_video_id(url))
     if video_path is None:
         video_cache.add(url)
@@ -193,7 +193,7 @@ def download_and_play_video(url, loop, title=None, thumbnail=None):
         loop,
         title,
         thumbnail,
-        play_interlude_after=True,
+        play_interlude_after=play_interlude_after,
     )
 
 
@@ -217,6 +217,7 @@ def handle_playlist(playlist_url: str, loop: bool):
                     loop=False,
                     title=video.title,
                     thumbnail=video.thumbnail_url,
+                    play_interlude_after=False,
                 )
             if result != 0:
                 # exit the entire thread routine if the video we just played was killed
