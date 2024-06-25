@@ -228,8 +228,7 @@ def handle_playlist(playlist_url: str, loop: bool):
 
 def _get_url_type(url: str):
     try:
-        playlist = pytube.Playlist(url)
-        logging.info(f"{url} is a playlist with {len(playlist)} videos")
+        pytube.Playlist(url)
         return UrlType.PLAYLIST
     except:
         try:
@@ -330,22 +329,24 @@ async def play(url: str, loop: bool = False):
         # Check the type of URL and start the appropriate thread
         if url_type == UrlType.VIDEO:
             video = YouTube(url)
-            threading.Thread(
+            t = threading.Thread(
                 target=download_and_play_video,
                 args=(url, loop, video.title, video.thumbnail),
                 daemon=True,
-            ).start()
+            )
+            t.start()
 
         elif url_type == UrlType.PLAYLIST:
             if len(Playlist(url)) == 0:
                 raise Exception(
                     "This playlist url is invalid. Playlist may be empty or no longer exists."
                 )
-            threading.Thread(
+            t = threading.Thread(
                 target=handle_playlist,
                 args=(url, loop),
                 daemon=True,
-            ).start()
+            )
+            t.start()
 
         else:
             raise HTTPException(status_code=400, detail="given url is of unknown type")
