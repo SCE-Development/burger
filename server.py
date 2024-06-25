@@ -338,7 +338,7 @@ async def play(url: str, loop: bool = False):
             video = YouTube(url)
             t = threading.Thread(
                 target=download_and_play_video,
-                args=(url, loop, video.title, video.thumbnail),
+                args=(url, loop, video.title, video.thumbnail_url),
             )
             t.start()
 
