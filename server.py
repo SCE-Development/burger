@@ -141,14 +141,14 @@ def create_ffmpeg_stream(
 
 
 # stop the video by type
-def stop_video_by_type(video_type: UrlType):
+def stop_video_by_type(video_type: State):
     if video_type in process_dict:
         kill_child_processes(process_dict[video_type])
         process_dict.pop(video_type)
 
 def stop_all_videos():
-    stop_video_by_type(UrlType.INTERLUDE)
-    stop_video_by_type(UrlType.PLAYING)
+    stop_video_by_type(State.INTERLUDE)
+    stop_video_by_type(State.PLAYING)
 
 # terminate a parent process and all its child processes using a specified signal.
 def kill_child_processes(parent_pid, sig=signal.SIGKILL):
