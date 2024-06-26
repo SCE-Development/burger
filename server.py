@@ -368,6 +368,39 @@ async def play(url: str, loop: bool = False):
         logging.exception(e)
         raise HTTPException(status_code=500, detail="check logs")
 
+    
+@app.get('/metadata')
+def metadata(url:str):
+    url = unquote(url)
+    try:
+        url_type = _get_url_type(url)
+        # Check if the given url is a valid video or playlist
+        if url_type == UrlType.VIDEO:
+            video = YouTube(url)
+            return {
+                "title": video.title,
+                "thumbnail": video.thumbnail_url
+            }
+        elif url_type == UrlType.PLAYLIST:
+            playlist = Playlist(url)
+            first_video = playlist.videos[0]
+            return {
+                "title": playlist.title,
+                "thumbnail": first_video.thumbnail_url
+            }
+        else:
+            logging.error(f"unable to determine url type from {url}")
+            raise HTTPException(status_code=400, detail="given url is of unknown type")
+    # If PyTube is unable to fetch video metadata, give response and reason
+    except pytube.exceptions.AgeRestrictedError:
+        raise HTTPException(status_code=400, detail="This video is age restricted :(")
+    except pytube.exceptions.RegexMatchError:
+        raise HTTPException(status_code=400, detail="That's not a YouTube link buddy ...")
+    except pytube.exceptions.VideoUnavailable:
+        raise HTTPException(status_code=404, detail="This video is unavailable :(")
+    except Exception:
+        logging.exception(f"unable to get metadata for url {url}")
+        raise HTTPException(status_code=500, detail="check logs")
 
 @app.post("/stop")
 async def stop():
