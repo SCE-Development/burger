@@ -85,6 +85,9 @@ def create_ffmpeg_stream(
     thumbnail=None,
     play_interlude_after=False
 ):
+    if video_path is None:
+        logging.info("video_path is None. ffmpeg_stream cancelled.")
+        return 2
     # Create a subprocess to stream the video using FFmpeg
     command = [
         "ffmpeg",
@@ -219,6 +222,9 @@ def handle_playlist(playlist_url: str, loop: bool):
                     thumbnail=video.thumbnail_url,
                     play_interlude_after=False,
                 )
+            if result == 2:
+                logging.info(f"Video {video_url} failed to download, skipping to next video in playlist")
+                continue
             if result != 0:
                 # exit the entire thread routine if the video we just played was killed
                 logging.info(f"playlist routine recieved code {result}, exiting")

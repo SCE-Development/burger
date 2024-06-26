@@ -32,6 +32,9 @@ class Cache():
                         resolution="360p",
                         progressive=True,
                     ).order_by("resolution").desc().first()
+        if video.filesize > self.max_size_bytes:
+            logging.info(f"Video size ({video.filesize} bytes) exceeds max cache size ({self.max_size_bytes} bytes). Caching cancelled.")
+            return None 
         video_file_name = video.default_filename
         video.download(self.file_path)
         video_id = self.get_video_id(url)
@@ -49,8 +52,8 @@ class Cache():
             size_bytes=video.filesize
         )
         if self.current_size_bytes + video_info.size_bytes > self.max_size_bytes:
-            bytes_to_free = self.max_size_bytes - video_info.size_bytes
-            self._downsize_cache_to_target_bytes(bytes_to_free)
+            target_bytes = self.max_size_bytes - video_info.size_bytes
+            self._downsize_cache_to_target_bytes(target_bytes)
         self.video_id_to_path[video_id] = video_info
         self.current_size_bytes += video_info.size_bytes
 
