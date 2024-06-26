@@ -64,7 +64,6 @@ class Cache():
         return None
     
     def _downsize_cache_to_target_bytes(self, target_bytes:int):
-        # self.max_size_bytes = target_bytes
         logging.info(f"current size {self.current_size_bytes}, downsizing to {target_bytes}")
         while self.current_size_bytes > target_bytes:
             removed_video_info = self.video_id_to_path.popitem(last=False)[1]
