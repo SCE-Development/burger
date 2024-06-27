@@ -23,6 +23,30 @@ class Metrics(enum.Enum):
         ['exit_code'] # 0, 137, 1 etc
     )
 
+    CACHE_ENTRIES = (
+        "cache_entries",
+        "Total entries in cache",
+        prometheus_client.Gauge,
+    )
+
+    CACHE_SIZE = (
+        "cache_size",
+        "Current cache size in bytes",
+        prometheus_client.Gauge,
+    )
+
+    CACHE_HIT_COUNT = (
+        "cache_hit_count",
+        "Number of successful cache retrievals",
+        prometheus_client.Counter,
+    )
+
+    CACHE_MISS_COUNT = (
+        "cache_miss_count",
+        "Number of failed cache retrievals",
+        prometheus_client.Counter,
+    )
+
     def __init__(self, title, description, prometheus_type, labels=()):
         # we use the above default value for labels because it matches what's used
         # in the prometheus_client library's metrics constructor, see
