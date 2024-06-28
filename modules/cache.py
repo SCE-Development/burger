@@ -61,7 +61,9 @@ class Cache():
     def find(self, video_id:str):
         if video_id in self.video_id_to_path:
             self.video_id_to_path.move_to_end(video_id)
+            self.metrics.cache_hit_count.inc()
             return self.video_id_to_path[video_id].file_path
+        self.metrics.cache_miss_count.inc()
         return None
     
     def _downsize_cache_to_target_bytes(self, target_bytes:int):

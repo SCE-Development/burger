@@ -183,7 +183,6 @@ def download_next_video_in_list(playlist, current_index):
 
 def download_and_play_video(url, loop, title=None, thumbnail=None, play_interlude_after=True):
     video_path = video_cache.find(Cache.get_video_id(url))
-    MetricsHandler.cache_hit_count.inc() if video_path is not None else MetricsHandler.cache_miss_count.inc()
     if video_path is None:
         video_cache.add(url)
         video_path = video_cache.find(Cache.get_video_id(url))
