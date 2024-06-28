@@ -25,9 +25,6 @@ class Cache():
         self.max_size_bytes = max_size_bytes
         self.current_size_bytes = 0
         self.video_id_to_path = OrderedDict()
-        self.metrics = MetricsHandler.instance()
-        self.metrics.cache_entries.set(0)
-        self.metrics.cache_size.set(0)
 
     def add(self, url:str):
         video = YouTube(url)
@@ -55,15 +52,15 @@ class Cache():
         self.video_id_to_path[video_id] = video_info
         self.current_size_bytes += video_info.size_bytes
         self._downsize_cache_to_target_bytes(self.max_size_bytes)
-        self.metrics.cache_entries.set(len(self.video_id_to_path))
-        self.metrics.cache_size.set(self.current_size_bytes)
+        MetricsHandler.cache_entries.set(len(self.video_id_to_path))
+        MetricsHandler.cache_size.set(self.current_size_bytes)
 
     def find(self, video_id:str):
         if video_id in self.video_id_to_path:
             self.video_id_to_path.move_to_end(video_id)
-            self.metrics.cache_hit_count.inc()
+            MetricsHandler.cache_hit_count.inc()
             return self.video_id_to_path[video_id].file_path
-        self.metrics.cache_miss_count.inc()
+        MetricsHandler.cache_miss_count.inc()
         return None
     
     def _downsize_cache_to_target_bytes(self, target_bytes:int):
