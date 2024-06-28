@@ -23,6 +23,13 @@ class Metrics(enum.Enum):
         ['exit_code'] # 0, 137, 1 etc
     )
 
+    HTTP_REQUEST_COUNT = (
+        "http_request_count",
+        "Number of requests received for each endpoint",
+        prometheus_client.Counter,
+        ['endpoint'],
+    )
+
     def __init__(self, title, description, prometheus_type, labels=()):
         # we use the above default value for labels because it matches what's used
         # in the prometheus_client library's metrics constructor, see
