@@ -32,6 +32,9 @@ class Cache():
                         resolution="360p",
                         progressive=True,
                     ).order_by("resolution").desc().first()
+        if video.filesize > self.max_size_bytes:
+            logging.info(f"Video size ({video.filesize} bytes) exceeds max cache size ({self.max_size_bytes} bytes). Caching cancelled.")
+            return None 
         video_file_name = video.default_filename
         video.download(self.file_path)
         video_id = self.get_video_id(url)
@@ -48,9 +51,11 @@ class Cache():
             title=YouTube(url).title,
             size_bytes=video.filesize
         )
+        if self.current_size_bytes + video_info.size_bytes > self.max_size_bytes:
+            target_bytes = self.max_size_bytes - video_info.size_bytes
+            self._downsize_cache_to_target_bytes(target_bytes)
         self.video_id_to_path[video_id] = video_info
         self.current_size_bytes += video_info.size_bytes
-        self._downsize_cache_to_target_bytes(self.max_size_bytes)
 
     def find(self, video_id:str):
         if video_id in self.video_id_to_path:
@@ -59,7 +64,6 @@ class Cache():
         return None
     
     def _downsize_cache_to_target_bytes(self, target_bytes:int):
-        self.max_size_bytes = target_bytes
         logging.info(f"current size {self.current_size_bytes}, downsizing to {target_bytes}")
         while self.current_size_bytes > target_bytes:
             removed_video_info = self.video_id_to_path.popitem(last=False)[1]
