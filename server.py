@@ -463,8 +463,8 @@ app.mount("/", StaticFiles(directory="static", html=True), name="static")
 # is so a thread starts up the interlude after the server is ready to go
 if __name__ == "server":
     MetricsHandler.init()   
-    MetricsHandler.cache_entries.set(0)
     MetricsHandler.cache_size.set(0)
+    MetricsHandler.cache_size_bytes.set(0)
     # Start up interlude by default
     if args.interlude:
         threading.Thread(target=handle_interlude).start()
