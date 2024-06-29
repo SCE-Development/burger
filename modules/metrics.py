@@ -45,6 +45,12 @@ class Metrics(enum.Enum):
         "cache_miss_count",
         "Number of failed cache retrievals",
         prometheus_client.Counter,
+
+    HTTP_REQUEST_COUNT = (
+        "http_request_count",
+        "Number of requests received for each endpoint",
+        prometheus_client.Counter,
+        ['endpoint'],
     )
 
     def __init__(self, title, description, prometheus_type, labels=()):

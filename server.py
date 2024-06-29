@@ -12,7 +12,7 @@ import time
 
 ssl._create_default_https_context = ssl._create_stdlib_context
 
-from fastapi import FastAPI, HTTPException, Response
+from fastapi import FastAPI, HTTPException, Response, Request
 from fastapi.responses import FileResponse
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
@@ -72,6 +72,10 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+@app.middleware("http")
+async def http_request_count(request: Request, call_next):
+    MetricsHandler.http_request_count.labels(endpoint=request.url.path).inc()
+    return await call_next(request)
 
 # return the result of process.wait()
 def create_ffmpeg_stream(
@@ -82,6 +86,9 @@ def create_ffmpeg_stream(
     thumbnail=None,
     play_interlude_after=False
 ):
+    if video_path is None:
+        logging.info("video_path is None. ffmpeg_stream cancelled.")
+        return 2
     # Create a subprocess to stream the video using FFmpeg
     command = [
         "ffmpeg",
@@ -216,6 +223,9 @@ def handle_playlist(playlist_url: str, loop: bool):
                     thumbnail=video.thumbnail_url,
                     play_interlude_after=False,
                 )
+            if result == 2:
+                logging.info(f"Video {video_url} failed to download, skipping to next video in playlist")
+                continue
             if result != 0:
                 # exit the entire thread routine if the video we just played was killed
                 logging.info(f"playlist routine recieved code {result}, exiting")
