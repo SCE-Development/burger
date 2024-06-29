@@ -52,8 +52,8 @@ class Cache():
         self.video_id_to_path[video_id] = video_info
         self.current_size_bytes += video_info.size_bytes
         self._downsize_cache_to_target_bytes(self.max_size_bytes)
-        MetricsHandler.cache_entries.set(len(self.video_id_to_path))
-        MetricsHandler.cache_size.set(self.current_size_bytes)
+        MetricsHandler.cache_size.set(len(self.video_id_to_path))
+        MetricsHandler.cache_size_bytes.set(self.current_size_bytes)
 
     def find(self, video_id:str):
         if video_id in self.video_id_to_path:

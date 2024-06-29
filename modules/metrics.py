@@ -23,14 +23,14 @@ class Metrics(enum.Enum):
         ['exit_code'] # 0, 137, 1 etc
     )
 
-    CACHE_ENTRIES = (
-        "cache_entries",
+    CACHE_SIZE = (
+        "cache_size",
         "Total entries in cache",
         prometheus_client.Gauge,
     )
 
-    CACHE_SIZE = (
-        "cache_size",
+    CACHE_SIZE_BYTES = (
+        "cache_size_bytes",
         "Current cache size in bytes",
         prometheus_client.Gauge,
     )
