@@ -12,7 +12,7 @@ import time
 
 ssl._create_default_https_context = ssl._create_stdlib_context
 
-from fastapi import FastAPI, HTTPException, Response
+from fastapi import FastAPI, HTTPException, Response, Request
 from fastapi.responses import FileResponse
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
@@ -75,6 +75,10 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+@app.middleware("http")
+async def http_request_count(request: Request, call_next):
+    MetricsHandler.http_request_count.labels(endpoint=request.url.path).inc()
+    return await call_next(request)
 
 # return the result of process.wait()
 def create_ffmpeg_stream(
