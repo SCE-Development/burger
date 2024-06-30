@@ -45,6 +45,7 @@ class Metrics(enum.Enum):
         "cache_miss_count",
         "Number of failed cache retrievals",
         prometheus_client.Counter,
+    )
 
     HTTP_REQUEST_COUNT = (
         "http_request_count",
