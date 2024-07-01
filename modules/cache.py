@@ -3,6 +3,7 @@ from dataclasses import dataclass
 import logging
 import os
 import uuid
+import json
 
 from pytube import YouTube
 
@@ -15,6 +16,7 @@ class VideoInfo():
     thumbnail: str
     title: str
     size_bytes: int
+    url: str
 
     def __str__(self):
         return f"VideoInfo(video_id={self.video_id}, file_path={self.file_path}, size_bytes={self.size_bytes})"
@@ -58,7 +60,9 @@ class Cache():
             file_path=video_file_path,
             thumbnail=YouTube(url).thumbnail_url,
             title=YouTube(url).title,
-            size_bytes=video.filesize
+            size_bytes=video.filesize,
+            url= url,
+            
         )
         self.video_id_to_path[video_id] = video_info
         self.current_size_bytes += video_info.size_bytes
@@ -82,6 +86,46 @@ class Cache():
 
     def clear(self):
         self._downsize_cache_to_target_bytes(0)
+
+    def populateCache(self, cache_file: str):
+        # if the cache file path exist, the file is json file, and it is not empty
+        if os.path.exists(cache_file) and cache_file.endswith(".json") and os.path.getsize(cache_file) > 0:
+            
+            # open the file and read the data
+            with open(cache_file, "r") as f:
+                
+                # json.load converts the json data into python dictionary
+                dict_data = json.load(f)
+            
+            # populate the cache
+            for _, video_info in dict_data.items():
+                self.add(video_info["url"])
+               
+
+    
+    def writeCache(self, cache_file: str):
+        # if the cache file path exist, the file is json file, and the video_id_to_path is not empty
+        if (os.path.exists(cache_file) and cache_file.endswith(".json") and len(self.video_id_to_path) > 0):
+            
+            # cache state 
+            cache_state = {}
+            for video_id, video_info in self.video_id_to_path.items():
+                cache_state[video_id] = {
+                    "file_path": video_info.file_path,
+                    "thumbnail": video_info.thumbnail,
+                    "title": video_info.title,
+                    "size_bytes": video_info.size_bytes,
+                    "url": video_info.url
+                }
+
+            # serializing json
+            json_data = json.dumps(cache_state, indent=4)
+
+            # open the file and write the data
+            with open(cache_file, "w") as f:
+                f.write(json_data)
+            
+
 
     @staticmethod
     def get_video_id(url) -> str:

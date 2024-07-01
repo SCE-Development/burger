@@ -27,4 +27,8 @@ def get_args():
         required=True,
         help="the location to stream downloaded files to, i.e. rtmp://localhost/stream/live"
     )
+    parser.add_argument(
+        "--cache-file",
+        help="file to store the cache state",
+    )
     return parser.parse_args()
