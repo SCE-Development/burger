@@ -26,7 +26,7 @@ class Metrics(enum.Enum):
     DOWNLOAD_TIME = (
         "download_time",
         "Total time spent downloading videos in seconds", 
-        prometheus_client.Counter,
+        prometheus_client.Summary,
     )
 
     DATA_DOWNLOADED = (

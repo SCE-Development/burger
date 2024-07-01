@@ -3,7 +3,6 @@ from dataclasses import dataclass
 import logging
 import os
 import uuid
-import time
 
 from pytube import YouTube
 
@@ -38,10 +37,8 @@ class Cache():
             logging.info(f"Video size ({video.filesize} bytes) exceeds max cache size ({self.max_size_bytes} bytes). Caching cancelled.")
             return None 
         video_file_name = video.default_filename
-        start_time = time.perf_counter()
-        video.download(self.file_path)
-        download_time = time.perf_counter() - start_time
-        MetricsHandler.download_time.inc(download_time)
+        with MetricsHandler.download_time.time():
+            video.download(self.file_path)
         MetricsHandler.data_downloaded.inc(video.filesize)
         MetricsHandler.video_download_count.inc()
         video_id = self.get_video_id(url)
