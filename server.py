@@ -63,9 +63,6 @@ args = get_args()
 # Create a cache object to store video files, initializing it with the file path specified in the command-line arguments or configuration settings. This instance is used to cache downloaded videos.
 video_cache = Cache(file_path=args.videopath)
 
-# Create a MetricsHandler instance to handle metrics for the server. This instance is used to handle metrics for the server.
-metrics_handler = MetricsHandler.instance()
-
 # Enable CORS
 app.add_middleware(
     CORSMiddleware,
@@ -475,6 +472,9 @@ app.mount("/", StaticFiles(directory="static", html=True), name="static")
 # this time __name__ == "server". the separate __name__ if statement
 # is so a thread starts up the interlude after the server is ready to go
 if __name__ == "server":
+    MetricsHandler.init()   
+    MetricsHandler.cache_size.set(0)
+    MetricsHandler.cache_size_bytes.set(0)
     # Start up interlude by default
     if args.interlude:
         threading.Thread(target=handle_interlude).start()

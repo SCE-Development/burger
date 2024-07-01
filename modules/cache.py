@@ -6,6 +6,7 @@ import uuid
 
 from pytube import YouTube
 
+from modules.metrics import MetricsHandler
 from urllib.parse import urlparse, parse_qs
 
 @dataclass
@@ -56,11 +57,15 @@ class Cache():
             self._downsize_cache_to_target_bytes(target_bytes)
         self.video_id_to_path[video_id] = video_info
         self.current_size_bytes += video_info.size_bytes
+        MetricsHandler.cache_size.set(len(self.video_id_to_path))
+        MetricsHandler.cache_size_bytes.set(self.current_size_bytes)
 
     def find(self, video_id:str):
         if video_id in self.video_id_to_path:
             self.video_id_to_path.move_to_end(video_id)
+            MetricsHandler.cache_hit_count.inc()
             return self.video_id_to_path[video_id].file_path
+        MetricsHandler.cache_miss_count.inc()
         return None
     
     def _downsize_cache_to_target_bytes(self, target_bytes:int):
