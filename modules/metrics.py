@@ -13,14 +13,32 @@ class Metrics(enum.Enum):
         "streams_count",
         "Number of streams created",
         prometheus_client.Counter,
-        ['video_type'] # playing, interlude
+        ['video_type']  # playing, interlude
     )
 
     SUBPROCESS_COUNT = (
         "subprocess_count",
         "Number of subprocesses ended",
         prometheus_client.Counter,
-        ['exit_code'] # 0, 137, 1 etc
+        ['exit_code']  # 0, 137, 1 etc
+    )
+
+    DOWNLOAD_TIME = (
+        "download_time",
+        "Accumulated taken to download videos in seconds",
+        prometheus_client.Counter,
+    )
+
+    DOWNLOAD_BITS = (
+        "download_bits",
+        "Accumulated video data downloaded in bits",
+        prometheus_client.Counter,
+    )
+
+    DOWNLOAD_COUNT = (
+        "download_count",
+        "Number of videos downloaded",
+        prometheus_client.Counter,
     )
 
     CACHE_SIZE = (
