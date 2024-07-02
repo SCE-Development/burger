@@ -28,7 +28,7 @@ def get_args():
         help="the location to stream downloaded files to, i.e. rtmp://localhost/stream/live"
     )
     parser.add_argument(
-        "--cache-file",
-        help="file to store the cache state",
+        "--cache-state-file",
+        help="JSON file to persist cache state on server shutdown and recover on startup. if specified, the server will not empty the cache on shutdown"
     )
     return parser.parse_args()

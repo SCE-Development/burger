@@ -462,8 +462,8 @@ def signal_handler():
     stop_all_videos()
 
     # if the cache file is specfied, write the cache to the file
-    if args.cache_file:
-        video_cache.writeCache(args.cache_file)
+    if args.cache_state_file:
+        video_cache.write_cache(args.cache_state_file)
 
     video_cache.clear()
 
@@ -488,8 +488,8 @@ if __name__ == "server":
         os.makedirs(args.videopath)
 
     # if the cache file is specified, populate the cache from the file
-    if args.cache_file:
-        video_cache.populateCache(args.cache_file)
+    if args.cache_state_file:
+        video_cache.populate_cache(args.cache_state_file)
 
     
 

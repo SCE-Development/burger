@@ -16,6 +16,7 @@ services:
       - --interlude=/tmp/videos/interlude.mp4
       - --videopath=/tmp/videos
       - --rtmp-stream-url=rtmp://nms:1935/live/mystream
+      - --cache-state-file=/tmp/videos/state.json
     volumes:
       - ./server.py:/app/server.py
       - ./static/:/app/static/
