@@ -37,7 +37,10 @@ class Cache():
             logging.info(f"Video size ({video.filesize} bytes) exceeds max cache size ({self.max_size_bytes} bytes). Caching cancelled.")
             return None 
         video_file_name = video.default_filename
-        video.download(self.file_path)
+        with MetricsHandler.download_time.time():
+            video.download(self.file_path)
+        MetricsHandler.data_downloaded.inc(video.filesize)
+        MetricsHandler.video_download_count.inc()
         video_id = self.get_video_id(url)
         video_file_name = str(uuid.uuid4()) + ".mp4"
         video_file_path = os.path.join(self.file_path, video_file_name)

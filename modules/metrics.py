@@ -23,6 +23,24 @@ class Metrics(enum.Enum):
         ['exit_code'] # 0, 137, 1 etc
     )
 
+    DOWNLOAD_TIME = (
+        "download_time",
+        "Total time spent downloading videos in seconds", 
+        prometheus_client.Summary,
+    )
+
+    DATA_DOWNLOADED = (
+        "data_downloaded",
+        "Total video data downloaded in bytes", 
+        prometheus_client.Counter,
+    )
+    
+    VIDEO_DOWNLOAD_COUNT = (
+        "video_download_count",
+        "Number of videos downloaded",
+        prometheus_client.Counter,
+    )
+
     CACHE_SIZE = (
         "cache_size",
         "Total entries in cache",
