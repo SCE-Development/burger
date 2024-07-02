@@ -89,8 +89,8 @@ class Cache():
 
     def populate_cache(self, cache_file: str):
         try:
-            # if the cache file path exist, the file is json file, and it is not empty
-            if os.path.exists(cache_file) and cache_file.endswith(".json") and os.path.getsize(cache_file) > 0:
+            # if the cache file path exist, and it is not empty
+            if os.path.exists(cache_file) and os.path.getsize(cache_file) > 0:
         
                 # open the file and read the data
                 with open(cache_file, "r") as f:
@@ -102,16 +102,14 @@ class Cache():
                 for _, video_info in dict_data.items():
                     self.add(video_info["url"])
 
-        except Exception as e:
-            logging.error("Invalid cache file", e)
+        except Exception:
+            logging.exception(f"unable to read cache data from {cache_file}")
 
                
 
     
     def write_cache(self, cache_file: str):
-        # if the cache file path exist, the file is json file, and the video_id_to_path is not empty
-        if (os.path.exists(cache_file) and cache_file.endswith(".json") and len(self.video_id_to_path) > 0):
-            
+        try:
             # cache state 
             cache_state = {}
             for video_id, video_info in self.video_id_to_path.items():
@@ -129,6 +127,9 @@ class Cache():
             # open the file and write the data
             with open(cache_file, "w") as f:
                 f.write(json_data)
+        
+        except Exception:
+            logging.exception(f"unable to write cache data to {cache_file}")
             
 
 
