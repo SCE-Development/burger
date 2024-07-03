@@ -88,19 +88,16 @@ class Cache():
         self._downsize_cache_to_target_bytes(0)
 
     def populate_cache(self, cache_file: str):
-        try:
-            # if the cache file path exist, and it is not empty
-            if os.path.exists(cache_file) and os.path.getsize(cache_file) > 0:
-        
-                # open the file and read the data
-                with open(cache_file, "r") as f:
-                    
-                    # json.load converts the json data into python dictionary
-                    dict_data = json.load(f)
+        try:   
+            # open the file and read the data
+            with open(cache_file, "r") as f:
                 
-                # populate the cache
-                for _, video_info in dict_data.items():
-                    self.add(video_info["url"])
+                # json.load converts the json data into python dictionary
+                dict_data = json.load(f)
+            
+            # populate the cache
+            for _, video_info in dict_data.items():
+                self.add(video_info["url"])
 
         except Exception:
             logging.exception(f"unable to read cache data from {cache_file}")
