@@ -37,12 +37,21 @@ class Cache():
             progressive=True,
         ).order_by("resolution").desc().first()
         if video.filesize > self.max_size_bytes:
-            logging.info(
-                f"Video size ({video.filesize} bytes) exceeds max cache size ({self.max_size_bytes} bytes). Caching cancelled.")
-            return None
+
+            logging.info(f"Video size ({video.filesize} bytes) exceeds max cache size ({self.max_size_bytes} bytes). Caching cancelled.")
+            return None 
+        if self.current_size_bytes + video.filesize > self.max_size_bytes:
+            target_bytes = self.max_size_bytes - video.filesize
+            self._downsize_cache_to_target_bytes(target_bytes)
+            MetricsHandler.cache_size.set(len(self.video_id_to_path))
+            MetricsHandler.cache_size_bytes.set(self.current_size_bytes)
         video_file_name = video.default_filename
         start_time = time.time()
-        video.download(self.file_path)
+        with MetricsHandler.download_time.time():
+            video.download(self.file_path)
+        MetricsHandler.data_downloaded.inc(video.filesize)
+        MetricsHandler.video_download_count.inc()
+        
         video_id = self.get_video_id(url)
         video_file_name = str(uuid.uuid4()) + ".mp4"
         video_file_path = os.path.join(self.file_path, video_file_name)
@@ -62,9 +71,6 @@ class Cache():
             title=YouTube(url).title,
             size_bytes=video.filesize
         )
-        if self.current_size_bytes + video_info.size_bytes > self.max_size_bytes:
-            target_bytes = self.max_size_bytes - video_info.size_bytes
-            self._downsize_cache_to_target_bytes(target_bytes)
         self.video_id_to_path[video_id] = video_info
         self.current_size_bytes += video_info.size_bytes
         MetricsHandler.cache_size.set(len(self.video_id_to_path))
