@@ -96,6 +96,7 @@ class Cache():
             # populate the cache
             for video_key, video_info in dict_data.items():
                 if not os.path.exists(video_info["file_path"]):
+                    logging.info(f"{video_info['file_path']} was not found on disc")
                     continue
                 self.video_id_to_path[video_key] = VideoInfo(
                     file_path=video_info["file_path"],
