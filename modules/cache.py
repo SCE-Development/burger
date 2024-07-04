@@ -104,7 +104,7 @@ class Cache():
                 self.current_size_bytes += video_info["size_bytes"]
                 MetricsHandler.cache_size.set(len(self.video_id_to_path))
                 MetricsHandler.cache_size_bytes.set(self.current_size_bytes)
-
+            logging.info(f"Read {len(dict_data)} items from cache file {self.cache_file}")
         except Exception:
             logging.exception(f"unable to read cache data from {self.cache_file}")
 
@@ -129,7 +129,8 @@ class Cache():
             # open the file and write the data
             with open(self.cache_file, "w") as f:
                 f.write(json_data)
-        
+
+            logging.info(f"Wrote {len(cache_state)} items to cache file {self.cache_file}")
         except Exception:
             logging.exception(f"unable to write cache data to {self.cache_file}")
             
