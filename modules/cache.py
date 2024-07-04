@@ -95,6 +95,8 @@ class Cache():
             
             # populate the cache
             for video_key, video_info in dict_data.items():
+                if not os.path.exists(video_info["file_path"]):
+                    continue
                 self.video_id_to_path[video_key] = VideoInfo(
                     file_path=video_info["file_path"],
                     thumbnail=video_info["thumbnail"],
@@ -104,7 +106,7 @@ class Cache():
                 self.current_size_bytes += video_info["size_bytes"]
                 MetricsHandler.cache_size.set(len(self.video_id_to_path))
                 MetricsHandler.cache_size_bytes.set(self.current_size_bytes)
-            logging.info(f"Read {len(dict_data)} items from cache file {self.cache_file}")
+            logging.info(f"Read {len(self.video_id_to_path)} items from cache file {self.cache_file}")
         except Exception:
             logging.exception(f"unable to read cache data from {self.cache_file}")
 
