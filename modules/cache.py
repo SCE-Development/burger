@@ -82,7 +82,7 @@ class Cache():
             self.current_size_bytes -= removed_video_info.size_bytes
             os.remove(removed_video_info.file_path)
 
-    def clear(self):  
+    def clear(self):
         self._downsize_cache_to_target_bytes(0)
 
     def populate_cache(self):
