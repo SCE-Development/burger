@@ -61,7 +61,7 @@ interlude_lock = threading.Lock()
 args = get_args()
 
 # Create a cache object to store video files, initializing it with the file path specified in the command-line arguments or configuration settings. This instance is used to cache downloaded videos.
-video_cache = Cache(file_path=args.videopath)
+video_cache = Cache(file_path=args.videopath, cache_file=args.cache_state_file)
 
 # Enable CORS
 app.add_middleware(
@@ -461,11 +461,13 @@ def debug():
 def signal_handler():
     stop_all_videos()
 
-    # if the cache file is specfied, write the cache to the file
+    # if the cache file is specfied, write the cache to the file and not clear the downloaded videos 
     if args.cache_state_file:
-        video_cache.write_cache(args.cache_state_file)
-
-    video_cache.clear()
+        video_cache.write_cache()
+    
+    # if the cache file isn't specified, clear all uncache videos
+    else:
+        video_cache.clear()
 
 
 app.mount("/", StaticFiles(directory="static", html=True), name="static")
@@ -489,7 +491,7 @@ if __name__ == "server":
 
     # if the cache file is specified, populate the cache from the file
     if args.cache_state_file:
-        video_cache.populate_cache(args.cache_state_file)
+        video_cache.populate_cache()
 
     
 

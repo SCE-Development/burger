@@ -22,10 +22,11 @@ class VideoInfo():
         return f"VideoInfo(video_id={self.video_id}, file_path={self.file_path}, size_bytes={self.size_bytes})"
 
 class Cache():
-    def __init__(self, file_path: str, max_size_bytes:int=2_000_000_000) -> None:
+    def __init__(self, file_path: str, cache_file: str = None,  max_size_bytes:int=2_000_000_000) -> None:
         self.file_path = file_path
         self.max_size_bytes = max_size_bytes
         self.current_size_bytes = 0
+        self.cache_file = cache_file
         self.video_id_to_path = OrderedDict()
 
     def add(self, url:str):
@@ -61,8 +62,7 @@ class Cache():
             thumbnail=YouTube(url).thumbnail_url,
             title=YouTube(url).title,
             size_bytes=video.filesize,
-            url= url,
-            
+            url= url, 
         )
         self.video_id_to_path[video_id] = video_info
         self.current_size_bytes += video_info.size_bytes
@@ -84,28 +84,37 @@ class Cache():
             self.current_size_bytes -= removed_video_info.size_bytes
             os.remove(removed_video_info.file_path)
 
-    def clear(self):
+    def clear(self):  
         self._downsize_cache_to_target_bytes(0)
 
-    def populate_cache(self, cache_file: str):
+    def populate_cache(self):
         try:   
             # open the file and read the data
-            with open(cache_file, "r") as f:
+            with open(self.cache_file, "r") as f:
                 
                 # json.load converts the json data into python dictionary
                 dict_data = json.load(f)
             
             # populate the cache
-            for _, video_info in dict_data.items():
-                self.add(video_info["url"])
+            for video_key, video_info in dict_data.items():
+                self.video_id_to_path[video_key] = VideoInfo(
+                    file_path=video_info["file_path"],
+                    thumbnail=video_info["thumbnail"],
+                    title=video_info["title"],
+                    size_bytes=video_info["size_bytes"],
+                    url=video_info["url"]
+                )
+                self.current_size_bytes += video_info["size_bytes"]
+                MetricsHandler.cache_size.set(len(self.video_id_to_path))
+                MetricsHandler.cache_size_bytes.set(self.current_size_bytes)
 
         except Exception:
-            logging.exception(f"unable to read cache data from {cache_file}")
+            logging.exception(f"unable to read cache data from {self.cache_file}")
 
                
 
     
-    def write_cache(self, cache_file: str):
+    def write_cache(self):
         try:
             # cache state 
             cache_state = {}
@@ -122,11 +131,11 @@ class Cache():
             json_data = json.dumps(cache_state, indent=4)
 
             # open the file and write the data
-            with open(cache_file, "w") as f:
+            with open(self.cache_file, "w") as f:
                 f.write(json_data)
         
         except Exception:
-            logging.exception(f"unable to write cache data to {cache_file}")
+            logging.exception(f"unable to write cache data to {self.cache_file}")
             
 
 
