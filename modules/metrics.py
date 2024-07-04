@@ -1,4 +1,5 @@
 import enum
+
 import prometheus_client
 
 
@@ -13,28 +14,28 @@ class Metrics(enum.Enum):
         "streams_count",
         "Number of streams created",
         prometheus_client.Counter,
-        ['video_type'] # playing, interlude
+        ["video_type"],  # playing, interlude
     )
 
     SUBPROCESS_COUNT = (
         "subprocess_count",
         "Number of subprocesses ended",
         prometheus_client.Counter,
-        ['exit_code'] # 0, 137, 1 etc
+        ["exit_code"],  # 0, 137, 1 etc
     )
 
     DOWNLOAD_TIME = (
         "download_time",
-        "Total time spent downloading videos in seconds", 
+        "Total time spent downloading videos in seconds",
         prometheus_client.Summary,
     )
 
     DATA_DOWNLOADED = (
         "data_downloaded",
-        "Total video data downloaded in bytes", 
+        "Total video data downloaded in bytes",
         prometheus_client.Counter,
     )
-    
+
     VIDEO_DOWNLOAD_COUNT = (
         "video_download_count",
         "Number of videos downloaded",
@@ -69,7 +70,7 @@ class Metrics(enum.Enum):
         "http_request_count",
         "Number of requests received for each endpoint",
         prometheus_client.Counter,
-        ['endpoint'],
+        ["endpoint"],
     )
 
     def __init__(self, title, description, prometheus_type, labels=()):

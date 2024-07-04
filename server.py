@@ -34,6 +34,7 @@ logging.basicConfig(
     level=logging.INFO,
 )
 
+
 # Enum for the state of the video being processed
 class State(enum.Enum):
     INTERLUDE = "interlude"
@@ -61,7 +62,7 @@ interlude_lock = threading.Lock()
 args = get_args()
 
 # Create a cache object to store video files, initializing it with the file path specified in the command-line arguments or configuration settings. This instance is used to cache downloaded videos.
-video_cache = Cache(file_path=args.videopath)
+video_cache = Cache(file_path=args.videopath, cache_file=args.cache_state_file)
 
 # Enable CORS
 app.add_middleware(
@@ -72,19 +73,21 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+
 @app.middleware("http")
 async def http_request_count(request: Request, call_next):
     MetricsHandler.http_request_count.labels(endpoint=request.url.path).inc()
     return await call_next(request)
 
+
 # return the result of process.wait()
 def create_ffmpeg_stream(
-    video_path: str, 
+    video_path: str,
     video_type: State,
     loop=False,
     title=None,
     thumbnail=None,
-    play_interlude_after=False
+    play_interlude_after=False,
 ):
     if video_path is None:
         logging.info("video_path is None. ffmpeg_stream cancelled.")
@@ -150,9 +153,11 @@ def stop_video_by_type(video_type: State):
         kill_child_processes(process_dict[video_type])
         process_dict.pop(video_type)
 
+
 def stop_all_videos():
     stop_video_by_type(State.INTERLUDE)
     stop_video_by_type(State.PLAYING)
+
 
 # terminate a parent process and all its child processes using a specified signal.
 def kill_child_processes(parent_pid, sig=signal.SIGKILL):
@@ -185,7 +190,9 @@ def download_next_video_in_list(playlist, current_index):
         video_cache.add(video_url)
 
 
-def download_and_play_video(url, loop, title=None, thumbnail=None, play_interlude_after=True):
+def download_and_play_video(
+    url, loop, title=None, thumbnail=None, play_interlude_after=True
+):
     video_path = video_cache.find(Cache.get_video_id(url))
     if video_path is None:
         video_cache.add(url)
@@ -224,7 +231,9 @@ def handle_playlist(playlist_url: str, loop: bool):
                     play_interlude_after=False,
                 )
             if result == 2:
-                logging.info(f"Video {video_url} failed to download, skipping to next video in playlist")
+                logging.info(
+                    f"Video {video_url} failed to download, skipping to next video in playlist"
+                )
                 continue
             if result != 0:
                 # exit the entire thread routine if the video we just played was killed
@@ -375,26 +384,20 @@ async def play(url: str, loop: bool = False):
         logging.exception(e)
         raise HTTPException(status_code=500, detail="check logs")
 
-    
-@app.get('/metadata')
-def metadata(url:str):
+
+@app.get("/metadata")
+def metadata(url: str):
     url = unquote(url)
     try:
         url_type = _get_url_type(url)
         # Check if the given url is a valid video or playlist
         if url_type == UrlType.VIDEO:
             video = YouTube(url)
-            return {
-                "title": video.title,
-                "thumbnail": video.thumbnail_url
-            }
+            return {"title": video.title, "thumbnail": video.thumbnail_url}
         elif url_type == UrlType.PLAYLIST:
             playlist = Playlist(url)
             first_video = playlist.videos[0]
-            return {
-                "title": playlist.title,
-                "thumbnail": first_video.thumbnail_url
-            }
+            return {"title": playlist.title, "thumbnail": first_video.thumbnail_url}
         else:
             logging.error(f"unable to determine url type from {url}")
             raise HTTPException(status_code=400, detail="given url is of unknown type")
@@ -402,12 +405,15 @@ def metadata(url:str):
     except pytube.exceptions.AgeRestrictedError:
         raise HTTPException(status_code=400, detail="This video is age restricted :(")
     except pytube.exceptions.RegexMatchError:
-        raise HTTPException(status_code=400, detail="That's not a YouTube link buddy ...")
+        raise HTTPException(
+            status_code=400, detail="That's not a YouTube link buddy ..."
+        )
     except pytube.exceptions.VideoUnavailable:
         raise HTTPException(status_code=404, detail="This video is unavailable :(")
     except Exception:
         logging.exception(f"unable to get metadata for url {url}")
         raise HTTPException(status_code=500, detail="check logs")
+
 
 @app.post("/stop")
 async def stop():
@@ -460,7 +466,14 @@ def debug():
 @app.on_event("shutdown")
 def signal_handler():
     stop_all_videos()
-    video_cache.clear()
+
+    # if the cache file is specfied, write the cache to the file and not clear the downloaded videos
+    if args.cache_state_file:
+        video_cache.write_cache()
+
+    # if the cache file isn't specified, clear all uncache videos
+    else:
+        video_cache.clear()
 
 
 app.mount("/", StaticFiles(directory="static", html=True), name="static")
@@ -472,7 +485,7 @@ app.mount("/", StaticFiles(directory="static", html=True), name="static")
 # this time __name__ == "server". the separate __name__ if statement
 # is so a thread starts up the interlude after the server is ready to go
 if __name__ == "server":
-    MetricsHandler.init()   
+    MetricsHandler.init()
     MetricsHandler.cache_size.set(0)
     MetricsHandler.cache_size_bytes.set(0)
     # Start up interlude by default
@@ -481,6 +494,11 @@ if __name__ == "server":
     # Ensure video folder exists
     if not os.path.exists(args.videopath):
         os.makedirs(args.videopath)
+
+    # if the cache file is specified, populate the cache from the file
+    if args.cache_state_file:
+        video_cache.populate_cache()
+
 
 if __name__ == "__main__":
     uvicorn.run(
