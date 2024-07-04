@@ -62,7 +62,6 @@ class Cache():
             thumbnail=YouTube(url).thumbnail_url,
             title=YouTube(url).title,
             size_bytes=video.filesize,
-            url= url, 
         )
         self.video_id_to_path[video_id] = video_info
         self.current_size_bytes += video_info.size_bytes
@@ -102,7 +101,6 @@ class Cache():
                     thumbnail=video_info["thumbnail"],
                     title=video_info["title"],
                     size_bytes=video_info["size_bytes"],
-                    url=video_info["url"]
                 )
                 self.current_size_bytes += video_info["size_bytes"]
                 MetricsHandler.cache_size.set(len(self.video_id_to_path))
@@ -124,7 +122,6 @@ class Cache():
                     "thumbnail": video_info.thumbnail,
                     "title": video_info.title,
                     "size_bytes": video_info.size_bytes,
-                    "url": video_info.url
                 }
 
             # serializing json
