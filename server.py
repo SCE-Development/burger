@@ -116,9 +116,9 @@ def create_ffmpeg_stream(
         command[2:2] = ["-stream_loop", "-1"]
     process = subprocess.Popen(
         command,
-        stdout=subprocess.DEVNULL,
-        stdin=subprocess.DEVNULL,
-        stderr=subprocess.DEVNULL,
+        # stdout=subprocess.DEVNULL,
+        # stdin=subprocess.DEVNULL,
+        # stderr=subprocess.DEVNULL,
     )
 
     if None not in [title, thumbnail]:
