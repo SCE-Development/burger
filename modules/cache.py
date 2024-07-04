@@ -16,7 +16,6 @@ class VideoInfo():
     thumbnail: str
     title: str
     size_bytes: int
-    url: str
 
     def __str__(self):
         return f"VideoInfo(video_id={self.video_id}, file_path={self.file_path}, size_bytes={self.size_bytes})"
