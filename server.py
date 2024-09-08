@@ -16,8 +16,8 @@ from fastapi import FastAPI, HTTPException, Response, Request
 from fastapi.responses import FileResponse
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
-from pytube import YouTube, Playlist
-import pytube.exceptions
+from pytubefix import YouTube, Playlist
+import pytubefix.exceptions
 import prometheus_client
 import psutil
 
@@ -249,12 +249,12 @@ def handle_playlist(playlist_url: str, loop: bool):
 
 def _get_url_type(url: str):
     try:
-        playlist = pytube.Playlist(url)
+        playlist = pytubefix.Playlist(url)
         logging.debug(f"{url} is a playlist with {len(playlist)} videos")
         return UrlType.PLAYLIST
     except:
         try:
-            pytube.YouTube(url)
+            pytubefix.YouTube(url)
             return UrlType.VIDEO
         except:
             logging.error(f"url {url} is not a playlist or video!")
@@ -372,13 +372,13 @@ async def play(url: str, loop: bool = False):
         return {"detail": "Success"}
 
     # If download is unsuccessful, give response and reason
-    except pytube.exceptions.AgeRestrictedError:
+    except pytubefix.exceptions.AgeRestrictedError:
         raise HTTPException(status_code=400, detail="This video is age restricted :(")
-    except pytube.exceptions.RegexMatchError:
+    except pytubefix.exceptions.RegexMatchError:
         raise HTTPException(
             status_code=400, detail="That's not a YouTube link buddy ..."
         )
-    except pytube.exceptions.VideoUnavailable:
+    except pytubefix.exceptions.VideoUnavailable:
         raise HTTPException(status_code=404, detail="This video is unavailable :(")
     except Exception as e:
         logging.exception(e)
@@ -401,14 +401,14 @@ def metadata(url: str):
         else:
             logging.error(f"unable to determine url type from {url}")
             raise HTTPException(status_code=400, detail="given url is of unknown type")
-    # If PyTube is unable to fetch video metadata, give response and reason
-    except pytube.exceptions.AgeRestrictedError:
+    # If pytubefix is unable to fetch video metadata, give response and reason
+    except pytubefix.exceptions.AgeRestrictedError:
         raise HTTPException(status_code=400, detail="This video is age restricted :(")
-    except pytube.exceptions.RegexMatchError:
+    except pytubefix.exceptions.RegexMatchError:
         raise HTTPException(
             status_code=400, detail="That's not a YouTube link buddy ..."
         )
-    except pytube.exceptions.VideoUnavailable:
+    except pytubefix.exceptions.VideoUnavailable:
         raise HTTPException(status_code=404, detail="This video is unavailable :(")
     except Exception:
         logging.exception(f"unable to get metadata for url {url}")
