@@ -2,3 +2,4 @@ fastapi==0.96.0
 uvicorn==0.22.0
 py-grpc-prometheus==0.7.0
 psutil==5.9.8
+pytubefix==6.15.4

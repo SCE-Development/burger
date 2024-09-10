@@ -5,7 +5,7 @@ import os
 import uuid
 import json
 
-from pytube import YouTube
+from pytubefix import YouTube
 
 from modules.metrics import MetricsHandler
 from urllib.parse import urlparse, parse_qs
